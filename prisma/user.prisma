@@ -1,8 +1,3 @@
-enum Role {
-    SUPER_ADMIN // Full access, manages other admins
-    ADMIN // Manages reported content, user profiles, and trip listings
-    USER
-}
 
 // 1. User Model
 model User {
@@ -41,11 +36,7 @@ model Trip {
     creator User @relation(fields: [creatorId], references: [id])
 }
 
-enum TripStatus {
-    PLANNED
-    COMPLETED
-    CANCELLED
-}
+
 
 // 3. Match Model
 model Match {
@@ -62,12 +53,7 @@ model Match {
     @@unique([requesterId, recipientId])
 }
 
-enum MatchStatus {
-    PENDING
-    ACCEPTED
-    REJECTED
-    BLOCKED
-}
+
 
 // 4. Subscription Model
 model Subscription {

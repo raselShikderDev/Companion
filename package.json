@@ -1,14 +1,13 @@
 {
   "name": "companion",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only ./src/server.ts"
-  },
+  "dev-n": "ts-node-dev --respawn --transpile-only --loader ts-node/esm ./src/server.ts",
+  "dev": "tsx watch src/server.ts"
+},
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
-    "@types/bun": "latest",
     "ts-node-dev": "^2.0.0"
   },
   "peerDependencies": {
@@ -31,6 +30,7 @@
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",
     "prisma": "^7.0.1",
+    "tsx": "^4.20.6",
     "zod": "^4.1.13"
   }
 }

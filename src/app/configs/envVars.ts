@@ -6,6 +6,7 @@ dotenv.config();
 interface IEnvVars {
   PORT: string;
   NODE_ENV: "Development" | "Production";
+  DATABASE_URL: string;
   JWT_ACCESS_EXPIRES: string;
   JWT_ACCESS_SECRET: string;
   BCRYPT_SALT_ROUND: string;
@@ -51,6 +52,7 @@ interface IEnvVars {
 
 const loadEnvVariables = (): IEnvVars => {
   const requiredEnv: string[] = [
+    "DATABASE_URL",
     "PORT",
     "NODE_ENV",
     "JWT_ACCESS_EXPIRES",
@@ -60,9 +62,6 @@ const loadEnvVariables = (): IEnvVars => {
     "SUPER_ADMIN_EMAIL",
     "JWT_REFRESH_SECRET",
     "JWT_REFRESH_EXPIRES",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_SECRET",
-    "GOOGLE_CALLBACK_URL",
     "EXPRESS_SESSION_SECRET",
     "FRONEND_URL",
     "SSL_VALIDATION_API",
@@ -98,6 +97,7 @@ const loadEnvVariables = (): IEnvVars => {
   });
 
   return {
+    DATABASE_URL: process.env.DATABASE_URL as string,
     PORT: process.env.PORT as string,
     NODE_ENV: process.env.NODE_ENV as "Development" | "Production",
     JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES as string,

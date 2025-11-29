@@ -1,15 +1,13 @@
-import { Server } from "http";
-import app from "./app";
-
-
+import type { Server } from "node:http";
+import { envVars } from "./app/configs/envVars.js";
+import app from "./app.js";
 
 async function mainServer() {
   let server: Server;
 
   try {
-  
-    server = app.listen(5000, () => {
-      console.log(`🚀 Server is running on http://localhost:${"5000"}`);
+    server = app.listen(envVars.PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${envVars.PORT}`);
     });
 
     // Function to gracefully shut down the server
@@ -32,10 +30,10 @@ async function mainServer() {
       if (server) {
         server.close(() => {
           console.log(error);
-          process.exit(1);
+          exitHandler();
         });
       } else {
-        process.exit(1);
+        exitHandler();
       }
     });
   } catch (error) {

@@ -1,0 +1,18 @@
+enum Role {
+    SUPER_ADMIN // Full access, manages other admins
+    ADMIN // Manages reported content, user profiles, and trip listings
+    USER
+}
+
+enum TripStatus {
+    PLANNED
+    COMPLETED
+    CANCELLED
+}
+
+enum MatchStatus {
+    PENDING
+    ACCEPTED
+    REJECTED
+    BLOCKED
+}
