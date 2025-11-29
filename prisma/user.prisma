@@ -1,0 +1,86 @@
+enum Role {
+    SUPER_ADMIN // Full access, manages other admins
+    ADMIN // Manages reported content, user profiles, and trip listings
+    USER
+}
+
+// 1. User Model
+model User {
+    id              String   @id @default(uuid())
+    email           String   @unique
+    password        String // Store hashed password
+    firstName       String
+    lastName        String
+    role            Role
+    bio             String?  @db.Text
+    profilePicture  String?
+    travelStyleTags String[] // e.g., ["Backpacker", "Luxury", "Budget"]
+    isPremium       Boolean  @default(false)
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
+
+    trips           Trip[]
+    subscriptions   Subscription[]
+    outgoingMatches Match[]        @relation("Requester")
+    incomingMatches Match[]        @relation("Recipient")
+}
+
+// 2. Trip Model
+model Trip {
+    id          String     @id @default(uuid())
+    creatorId   String
+    destination String
+    startDate   DateTime
+    endDate     DateTime
+    description String?    @db.Text
+    budgetLevel String
+    status      TripStatus @default(PLANNED)
+    createdAt   DateTime   @default(now())
+    updatedAt   DateTime   @updatedAt
+
+    creator User @relation(fields: [creatorId], references: [id])
+}
+
+enum TripStatus {
+    PLANNED
+    COMPLETED
+    CANCELLED
+}
+
+// 3. Match Model
+model Match {
+    id          String      @id @default(uuid())
+    requesterId String
+    recipientId String
+    status      MatchStatus @default(PENDING)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    requester User @relation("Requester", fields: [requesterId], references: [id])
+    recipient User @relation("Recipient", fields: [recipientId], references: [id])
+
+    @@unique([requesterId, recipientId])
+}
+
+enum MatchStatus {
+    PENDING
+    ACCEPTED
+    REJECTED
+    BLOCKED
+}
+
+// 4. Subscription Model
+model Subscription {
+    id                   String   @id @default(uuid())
+    userId               String   @unique
+    planName             String
+    stripeCustomerId     String?  @unique
+    stripeSubscriptionId String?  @unique
+    startDate            DateTime @default(now())
+    endDate              DateTime
+    isActive             Boolean  @default(true)
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id])
+}
