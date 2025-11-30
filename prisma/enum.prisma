@@ -16,3 +16,9 @@ enum MatchStatus {
     REJECTED
     BLOCKED
 }
+
+enum UserStatus {
+    ACTIVE
+    BLOCKED
+    SUSPENDED
+}
