@@ -1,6 +1,6 @@
-/** biome-ignore-all assist/source/organizeImports: <explanation> */
-import express, { type Application, type Request, type Response } from "express";
 import cookieParser from "cookie-parser";
+import express, { type Application, type Request, type Response } from "express";
+import router from "./app/routes/mainRoutes";
 
 const app: Application = express();
 
@@ -18,11 +18,11 @@ app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 
-
+app.use("/api/v1", router)
 
 
 app.get("/", (_req: Request, res: Response) => {
-  res.send("health Care is running..");
+  res.send("Companion is running...");
 });
 
 
