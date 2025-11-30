@@ -1,18 +1,22 @@
+/** biome-ignore-all assist/source/organizeImports: > */
 import cookieParser from "cookie-parser";
+import cors from "cors"
 import express, { type Application, type Request, type Response } from "express";
 import router from "./app/routes/mainRoutes";
+import { globalErrorHandler } from "./app/middlewares/globalErrorHandlers";
+import notFound from "./app/middlewares/notFound";
+import { envVars } from "./app/configs/envVars";
 
 const app: Application = express();
 
 
-// app.use(
-//   cors({
-//     origin: envVars.FRONTEND_URL as string, // Working well
-//     credentials: true,
-//   })
-// );
+app.use(
+  cors({
+    origin: envVars.FRONEND_URL as string, 
+    credentials: true,
+  })
+);
 
-//parser
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -26,6 +30,7 @@ app.get("/", (_req: Request, res: Response) => {
 });
 
 
-
+app.use(globalErrorHandler)
+app.use(notFound)
 
 export default app;

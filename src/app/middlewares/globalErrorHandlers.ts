@@ -1,5 +1,8 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
-import { Request, Response, NextFunction } from 'express';
+/** biome-ignore-all lint/suspicious/noExplicitAny: ok */
+/** biome-ignore-all assist/source/organizeImports: > */
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/correctness/noUnusedFunctionParameters: ok */
+import { type Request, type Response, type NextFunction } from 'express';
 import customError from '../shared/customError';
 
 // Checks if an error is a Prisma Client error
@@ -82,14 +85,7 @@ const processRawError = (err: any): typeof customError.prototype => {
     );
 };
 
-// =============================================================================
-// GLOBAL EXPRESS ERROR HANDLER MIDDLEWARE
-// =============================================================================
 
-/**
- * Global Express Error Handler. 
- * This must be the last middleware registered in your Express app.
- */
 export const globalErrorHandler = (
     err: any, 
     req: Request, 
@@ -108,6 +104,6 @@ export const globalErrorHandler = (
     res.status(error.statusCode).json({
         success: false,
         message: error.message,
-        errors: error.errors, 
+        errors: error, 
     });
 };

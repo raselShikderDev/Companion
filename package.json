@@ -3,9 +3,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-  "dev-n": "ts-node-dev --respawn --transpile-only --loader ts-node/esm ./src/server.ts",
-  "dev": "tsx watch src/server.ts"
-},
+    "dev-n": "ts-node-dev --respawn --transpile-only --loader ts-node/esm ./src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
     "ts-node-dev": "^2.0.0"
@@ -19,6 +19,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
+    "@types/http-status-codes": "^1.2.0",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "bcrypt": "^6.0.0",
@@ -26,6 +27,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "http-status-codes": "^2.3.0",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",
