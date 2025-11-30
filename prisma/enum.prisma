@@ -22,3 +22,19 @@ enum UserStatus {
     BLOCKED
     SUSPENDED
 }
+
+enum PaymentStatus {
+    PAID
+    UNPAID
+}
+
+enum Gender {
+    MALE
+    FEMALE
+}
+
+enum LookingFor {
+    MALE
+    FEMALE
+    ANYONE
+}

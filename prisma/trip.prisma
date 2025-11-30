@@ -1,20 +1,21 @@
 model Trip {
-    id          String     @id @default(uuid())
-    creatorId   String
-    destination String
-    from String
-    startDate   DateTime
-    endDate     DateTime
-    description String?    @db.Text
-    budgetLevel String
-    status      TripStatus @default(PLANNED)
-    createdAt   DateTime   @default(now())
-    updatedAt   DateTime   @updatedAt
+    id                String     @id @default(uuid())
+    title             String
+    creatorId         String
+    destination       String
+    departureLocation String
+    startDate         DateTime
+    endDate           DateTime
+    description       String?    @db.Text
+    budget            String
+    journeyType       String
+    Languages         String[]
+    status            TripStatus @default(PLANNED)
+    createdAt         DateTime   @default(now())
+    updatedAt         DateTime   @updatedAt
 
-    creator User @relation(fields: [creatorId], references: [id])
+    creator Explorer @relation(fields: [creatorId], references: [id])
 }
-
-
 
 model Match {
     id          String      @id @default(uuid())
@@ -24,9 +25,8 @@ model Match {
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
 
-    requester User @relation("Requester", fields: [requesterId], references: [id])
-    recipient User @relation("Recipient", fields: [recipientId], references: [id])
+    requester Explorer @relation("Requester", fields: [requesterId], references: [id])
+    recipient Explorer @relation("Recipient", fields: [recipientId], references: [id])
 
     @@unique([requesterId, recipientId])
 }
-

@@ -1,22 +1,46 @@
-// 1. User Model
 model User {
-    id              String     @id @default(uuid())
-    email           String     @unique
-    password        String
+    id        String     @id @default(uuid())
+    email     String     @unique
+    password  String
+    role      Role       @default(USER)
+    status    UserStatus @default(ACTIVE)
+    isDeleted Boolean    @default(false)
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+
+    admins    Admin[]
+    explorers Explorer[]
+}
+
+model Admin {
+    id             String  @id @default(uuid())
+    userId         String
+    fullName       String
+    profilePicture String?
+    address        String?
+    bio            String? @db.Text
+    phone          String
+
+    user User @relation(fields: [userId], references: [id])
+}
+
+model Explorer {
+    id              String         @id @default(uuid())
+    userId          String
     fullName        String
-    role            Role       @default(USER)
-    bio             String?    @db.Text
+    gender          Gender
+    age             String?
     profilePicture  String?
     address         String?
-    status          UserStatus @default(ACTIVE)
-    isDeleted       Boolean    @default(false)
+    bio             String?        @db.Text
+    phone           String
     travelStyleTags String[] // e.g., ["Backpacker", "Luxury", "Budget"]
-    isPremium       Boolean    @default(false)
-    createdAt       DateTime   @default(now())
-    updatedAt       DateTime   @updatedAt
-
+    interests       String[] // e.g., ["Mountain", "Campigning",]
+    isPremium       Boolean        @default(false)
     trips           Trip[]
     subscriptions   Subscription[]
     outgoingMatches Match[]        @relation("Requester")
     incomingMatches Match[]        @relation("Recipient")
+
+    user User @relation(fields: [userId], references: [id])
 }
