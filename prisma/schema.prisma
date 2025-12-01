@@ -1,3 +1,5 @@
+
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,3 +8,156 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
+
+
+enum Role {
+    SUPER_ADMIN 
+    ADMIN 
+    EXPLORER
+}
+
+enum TripStatus {
+    PLANNED
+    COMPLETED
+    CANCELLED
+}
+
+enum MatchStatus {
+    PENDING
+    ACCEPTED
+    REJECTED
+    BLOCKED
+}
+
+enum UserStatus {
+    ACTIVE
+    BLOCKED
+    SUSPENDED
+}
+
+enum PaymentStatus {
+    PAID
+    UNPAID
+}
+
+enum Gender {
+    MALE
+    FEMALE
+}
+
+enum LookingFor {
+    MALE
+    FEMALE
+    ANYONE
+}
+
+
+
+
+
+model User {
+    id        String     @id @default(uuid())
+    email     String     @unique
+    password  String
+    role      Role       @default(EXPLORER)
+    status    UserStatus @default(ACTIVE)
+    isDeleted Boolean    @default(false)
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+
+    admins    Admin[]
+    explorers Explorer[]
+}
+
+model Admin {
+    id             String   @id @default(uuid())
+    userId         String
+    fullName       String
+    profilePicture String?
+    address        String?
+    bio            String?  @db.Text
+    phone          String
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id])
+}
+
+model Explorer {
+    id              String         @id @default(uuid())
+    userId          String
+    fullName        String
+    gender          Gender
+    age             String?
+    profilePicture  String?
+    address         String?
+    bio             String?        @db.Text
+    phone           String
+    travelStyleTags String[]
+    interests       String[]
+    isPremium       Boolean        @default(false)
+    trips           Trip[]
+    subscription    Subscription?  
+    outgoingMatches Match[]        @relation("Requester")
+    incomingMatches Match[]        @relation("Recipient")
+
+    createdAt       DateTime       @default(now())
+    updatedAt       DateTime       @updatedAt
+
+    user User @relation(fields: [userId], references: [id])
+}
+
+
+
+
+
+model Trip {
+    id                String     @id @default(uuid())
+    title             String
+    creatorId         String
+    destination       String
+    departureLocation String
+    startDate         DateTime
+    endDate           DateTime
+    description       String?    @db.Text
+    budget            String
+    journeyType       String
+    Languages         String[]
+    status            TripStatus @default(PLANNED)
+    createdAt         DateTime   @default(now())
+    updatedAt         DateTime   @updatedAt
+
+    creator Explorer @relation(fields: [creatorId], references: [id])
+}
+
+model Match {
+    id          String      @id @default(uuid())
+    requesterId String
+    recipientId String
+    status      MatchStatus @default(PENDING)
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+
+    requester Explorer @relation("Requester", fields: [requesterId], references: [id])
+    recipient Explorer @relation("Recipient", fields: [recipientId], references: [id])
+
+    @@unique([requesterId, recipientId])
+}
+
+
+model Subscription {
+    id                   String   @id @default(uuid())
+    explorerId           String   @unique
+    planName             String
+    stripeCustomerId     String?  @unique
+    stripeSubscriptionId String?  @unique
+    startDate            DateTime @default(now())
+    endDate              DateTime
+    isActive             Boolean  @default(true)
+    createdAt            DateTime @default(now())
+    updatedAt            DateTime @updatedAt
+
+    explorer Explorer @relation(fields: [explorerId], references: [id])
+}

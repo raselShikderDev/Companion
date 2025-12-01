@@ -4,7 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import "dotenv/config"; 
 import { envVars } from "./envVars.js";
 
-const connectionString = envVars.DATABASE_URL || "postgresql://postgres:PostSQL%23%407721Rsl@localhost:5432/companion?schema=public";
+const connectionString = envVars.DATABASE_URL || "postgresql://neondb_owner:npg_NWinazHPA6O1@ep-lucky-bar-a162j9we-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require";
 
 if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is not set.');

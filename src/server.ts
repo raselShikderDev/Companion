@@ -1,8 +1,9 @@
 import type { Server } from "node:http";
 import { envVars } from "./app/configs/envVars.js";
 import app from "./app.js";
+import seedSuperAdmin from "./app/helper/seedSuparAdmin.js";
 
-async function mainServer() {
+async function startServer() {
   let server: Server;
 
   try {
@@ -42,4 +43,14 @@ async function mainServer() {
   }
 }
 
-mainServer();
+
+
+
+(async function main() {
+  try {
+    await startServer();
+    await seedSuperAdmin();
+  } catch (error) {
+    console.error("Error in main:", error);
+  }
+})();
