@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
 import { ICreateAdmin, ICreateExplorer } from "./user.interface";
@@ -22,7 +23,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
     }
   })
 
-  if (existingUser && existingUser.email) {
+  if (existingUser?.email) {
     throw new customError(StatusCodes.BAD_REQUEST, "Explorer already exists! Please use another email")
   }
 
@@ -76,7 +77,7 @@ export const createAdmin = async (payload: ICreateAdmin) => {
     where: { email },
   });
 
-  if (existingUser && existingUser.email) {
+  if (existingUser?.email) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
       "Admin already exists! Please use another email"

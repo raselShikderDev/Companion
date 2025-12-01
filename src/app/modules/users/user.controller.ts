@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: > */
 import { NextFunction, Request, Response } from "express";
 import catchAsync from "../../shared/catchAsync";
@@ -19,7 +20,7 @@ const createExplorer = catchAsync(async (req: Request, res: Response, next: Next
     }
     sendResponse(res, {
         success: true,
-        statusCode: StatusCodes.OK,
+        statusCode: StatusCodes.CREATED,
         message: "Explorer successfully created",
         data: newExplorer
     })
@@ -32,9 +33,11 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
         throw new customError(StatusCodes.BAD_REQUEST, "Creating admin failed")
 
     }
+
+    
     sendResponse(res, {
         success: true,
-        statusCode: StatusCodes.OK,
+        statusCode: StatusCodes.CREATED,
         message: "Admin successfully created",
         data: newAdmin
     })
