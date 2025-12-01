@@ -56,13 +56,13 @@ const createExplorer = async (payload: ICreateExplorer) => {
 
 // http://localhost:5000/api/v1/users/create-explorer
 // {
-//   "email": "john.doe3@example.com",
+//   "email": "explorer1@test.com",
 //   "password": "SecurePass123!",
 //   "explorer": {
-//     "fullName": "John Doe",
-//     "phone": "+8801700000000",
+//     "fullName": "John Explorer",
+//     "phone": "01712345678",
 //     "gender": "MALE",
-//     "profilePicture": "https://example.com/profiles/john_doe.jpg"
+//     "profilePicture": "https://example.com/pic.jpg"
 //   }
 // }
 

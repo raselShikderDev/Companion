@@ -19,7 +19,7 @@ const createExplorer = catchAsync(async (req: Request, res: Response, next: Next
     }
     sendResponse(res, {
         success: true,
-        statusCode: 500,
+        statusCode: StatusCodes.OK,
         message: "Explorer successfully created",
         data: newExplorer
     })
@@ -34,7 +34,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
     }
     sendResponse(res, {
         success: true,
-        statusCode: 500,
+        statusCode: StatusCodes.OK,
         message: "Admin successfully created",
         data: newAdmin
     })
