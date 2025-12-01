@@ -26,3 +26,12 @@ export const setAuthCookie = async (
     });
   }
 };
+
+
+export const clearAuthCookie = (res: Response, name: string) => {
+  res.clearCookie(name, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
+};

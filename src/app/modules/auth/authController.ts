@@ -7,7 +7,7 @@ import sendResponse from "../../shared/sendResponse";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { authService } from "./auth.service";
-import { setAuthCookie } from "../../helper/authCookie";
+import { clearAuthCookie, setAuthCookie } from "../../helper/authCookie";
 
 const login = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -29,6 +29,22 @@ const login = catchAsync(
   }
 );
 
+const logOut = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+
+    clearAuthCookie(res, "accessToken")
+    clearAuthCookie(res, "refreshToken")
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: `Successfully logged Out`,
+      data: null,
+    });
+  }
+);
+
 export const authController = {
   login,
+  logOut
 };

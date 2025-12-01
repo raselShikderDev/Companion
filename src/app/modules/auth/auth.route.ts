@@ -4,10 +4,9 @@ import { validateRequest } from "../../middlewares/validateRequest";
 import { loginZodSchema } from "./auth.zodSchema";
 import { authController } from "./authController";
 
-
-const router = Router()
+const router = Router();
 
 router.post("/login", validateRequest(loginZodSchema), authController.login);
+router.post("/logout", authController.logOut);
 
-
-export const authRouter = router
+export const authRouter = router;
