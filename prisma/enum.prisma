@@ -1,6 +1,6 @@
 enum Role {
-    SUPER_ADMIN // Full access, manages other admins
-    ADMIN // Manages reported content, user profiles, and trip listings
+    SUPER_ADMIN 
+    ADMIN 
     USER
 }
 

@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
+    "prisma-import": "^1.0.5",
     "ts-node-dev": "^2.0.0"
   },
   "peerDependencies": {

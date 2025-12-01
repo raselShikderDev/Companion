@@ -1,6 +1,6 @@
 model Subscription {
     id                   String   @id @default(uuid())
-    userId               String   @unique
+    explorerId           String   @unique
     planName             String
     stripeCustomerId     String?  @unique
     stripeSubscriptionId String?  @unique
@@ -10,5 +10,5 @@ model Subscription {
     createdAt            DateTime @default(now())
     updatedAt            DateTime @updatedAt
 
-    user Explorer @relation(fields: [userId], references: [id])
+    explorer Explorer @relation(fields: [explorerId], references: [id])
 }
