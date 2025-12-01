@@ -15,7 +15,7 @@ datasource db {
 enum Role {
     SUPER_ADMIN 
     ADMIN 
-    USER
+    EXPLORER
 }
 
 enum TripStatus {
@@ -61,7 +61,7 @@ model User {
     id        String     @id @default(uuid())
     email     String     @unique
     password  String
-    role      Role       @default(USER)
+    role      Role       @default(EXPLORER)
     status    UserStatus @default(ACTIVE)
     isDeleted Boolean    @default(false)
     createdAt DateTime   @default(now())

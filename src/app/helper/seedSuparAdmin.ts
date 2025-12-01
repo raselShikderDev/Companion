@@ -1,7 +1,6 @@
 import { Role, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { envVars } from "../configs/envVars";
-import { email } from "zod";
 import { prisma } from "../configs/db.config";
 
 

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'USER');
+CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'EXPLORER');
 
 -- CreateEnum
 CREATE TYPE "TripStatus" AS ENUM ('PLANNED', 'COMPLETED', 'CANCELLED');
@@ -24,7 +24,7 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
-    "role" "Role" NOT NULL DEFAULT 'USER',
+    "role" "Role" NOT NULL DEFAULT 'EXPLORER',
     "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
