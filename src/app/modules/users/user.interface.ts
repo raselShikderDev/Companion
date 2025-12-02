@@ -19,3 +19,6 @@ export interface ICreateAdmin {
     profilePicture: string;
   };
 }
+
+// travelStylesTags e.g., ["Mountain", "Campigning",]
+// intrests e.g., ["Backpacker", "Luxury", "Budget"]

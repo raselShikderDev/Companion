@@ -9,8 +9,7 @@ import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 
 
-// travelStylesTags e.g., ["Mountain", "Campigning",]
-// intrests e.g., ["Backpacker", "Luxury", "Budget"]
+
 
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
