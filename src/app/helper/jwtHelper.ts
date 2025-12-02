@@ -8,6 +8,6 @@ export const generateJwtToken = async (jwtPayload:JwtPayload, secret:string, exp
 }
 
 export const verifyJwtToken = async (accessToken:string, secret:string)=>{
-     const verifiedToekn = await jwt.verify(accessToken, secret);
+     const verifiedToekn = jwt.verify(accessToken, secret);
      return verifiedToekn
 }
