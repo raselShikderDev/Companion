@@ -6,6 +6,8 @@ import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../shared/sendResponse";
 import customError from "../../shared/customError";
 
+
+// Create trip
 export const createTrip = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
     const user = req.user;
@@ -25,9 +27,10 @@ export const createTrip = catchAsync(async (req: Request, res: Response, next: N
     })
 })
 
+// Update trip
 export const updateTrip = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 
-   const tripId = req.params.id;
+    const tripId = req.params.id;
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -42,8 +45,69 @@ export const updateTrip = catchAsync(async (req: Request, res: Response, next: N
     })
 })
 
+// Get single trip
+export const getTripById = catchAsync(async (req: Request, res: Response) => {
+    const tripId = req.params.id;
+    const trip = await TripService.getTripById(tripId);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: StatusCodes.OK,
+        message: "Trip fetched successfully",
+        data: trip,
+    });
+});
+
+// Get all trips
+export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
+    const trips = await TripService.getAllTrips();
+
+    sendResponse(res, {
+        success: true,
+        statusCode: StatusCodes.OK,
+        message: "All trips fetched successfully",
+        data: trips,
+    });
+});
+
+// Get logged-in user trips
+export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const trips = await TripService.getUserTrips(userId);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: StatusCodes.OK,
+        message: "Your trips fetched successfully",
+        data: trips,
+    });
+});
+
+// Delete trip
+export const deleteTrip = catchAsync(async (req: Request, res: Response) => {
+    const tripId = req.params.id;
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    await TripService.deleteTrip(tripId, userId);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: StatusCodes.OK,
+        message: "Trip deleted successfully",
+        data: null
+    });
+});
+
 export const TripController = {
-    createTrip
+    createTrip,
+    updateTrip,
+    getTripById,
+    getAllTrips,
+    getMyTrips,
+    deleteTrip,
 }
 
 

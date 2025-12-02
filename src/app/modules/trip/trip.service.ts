@@ -119,7 +119,47 @@ export const updateTrip = async (tripId: string, data: UpdateTripInput, userId: 
 };
 
 
+export const getTripById = async (tripId: string) => {
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: { creator: true },
+  });
+  if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
+  return trip;
+};
+
+export const getAllTrips = async () => {
+  return prisma.trip.findMany({
+    include: { creator: true },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+export const getUserTrips = async (userId: string) => {
+  return prisma.trip.findMany({
+    where: { creator: { userId } },
+    include: { creator: true },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+export const deleteTrip = async (tripId: string, userId: string) => {
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: { creator: true },
+  });
+  if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
+  if (trip.creator.userId !== userId) {
+    throw new customError(StatusCodes.FORBIDDEN, "You are not allowed to delete this trip");
+  }
+  return prisma.trip.delete({ where: { id: tripId } });
+};
+
 export const TripService = {
   createTrip,
   updateTrip,
+  getTripById,
+  getAllTrips,
+  getUserTrips,
+  deleteTrip,
 }
