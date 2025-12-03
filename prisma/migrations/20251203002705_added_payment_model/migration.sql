@@ -11,13 +11,16 @@ CREATE TYPE "MatchStatus" AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED', 'BLOCKED')
 CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'BLOCKED', 'SUSPENDED');
 
 -- CreateEnum
-CREATE TYPE "PaymentStatus" AS ENUM ('PAID', 'UNPAID');
+CREATE TYPE "PaymentStatus" AS ENUM ('PAID', 'UNPAID', 'PENDING', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "Gender" AS ENUM ('MALE', 'FEMALE');
 
 -- CreateEnum
 CREATE TYPE "LookingFor" AS ENUM ('MALE', 'FEMALE', 'ANYONE');
+
+-- CreateEnum
+CREATE TYPE "SubscriptionPlan" AS ENUM ('FREE', 'STANDARD', 'PREMIUM');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -79,7 +82,10 @@ CREATE TABLE "Trip" (
     "endDate" TIMESTAMP(3) NOT NULL,
     "description" TEXT,
     "budget" TEXT NOT NULL,
-    "journeyType" TEXT NOT NULL,
+    "journeyType" TEXT[],
+    "requiredPerson" TEXT NOT NULL,
+    "matchCompleted" BOOLEAN NOT NULL DEFAULT false,
+    "duration" TEXT NOT NULL,
     "Languages" TEXT[],
     "status" "TripStatus" NOT NULL DEFAULT 'PLANNED',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -104,7 +110,7 @@ CREATE TABLE "Match" (
 CREATE TABLE "Subscription" (
     "id" TEXT NOT NULL,
     "explorerId" TEXT NOT NULL,
-    "planName" TEXT NOT NULL,
+    "planName" "SubscriptionPlan" NOT NULL DEFAULT 'FREE',
     "stripeCustomerId" TEXT,
     "stripeSubscriptionId" TEXT,
     "startDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -114,6 +120,23 @@ CREATE TABLE "Subscription" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Subscription_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Payment" (
+    "id" TEXT NOT NULL,
+    "explorerId" TEXT NOT NULL,
+    "planName" "SubscriptionPlan" NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'BDT',
+    "gateway" TEXT NOT NULL,
+    "transactionId" TEXT,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "rawResponse" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -130,6 +153,9 @@ CREATE UNIQUE INDEX "Subscription_stripeCustomerId_key" ON "Subscription"("strip
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Subscription_stripeSubscriptionId_key" ON "Subscription"("stripeSubscriptionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Payment_transactionId_key" ON "Payment"("transactionId");
 
 -- AddForeignKey
 ALTER TABLE "Admin" ADD CONSTRAINT "Admin_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -148,3 +174,6 @@ ALTER TABLE "Match" ADD CONSTRAINT "Match_recipientId_fkey" FOREIGN KEY ("recipi
 
 -- AddForeignKey
 ALTER TABLE "Subscription" ADD CONSTRAINT "Subscription_explorerId_fkey" FOREIGN KEY ("explorerId") REFERENCES "Explorer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_explorerId_fkey" FOREIGN KEY ("explorerId") REFERENCES "Explorer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

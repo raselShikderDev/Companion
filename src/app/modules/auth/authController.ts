@@ -44,7 +44,49 @@ const logOut = catchAsync(
   }
 );
 
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  await authService.forgotPassword(email);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "OTP sent to your email",
+    data: null
+  });
+});
+
+const verifyOTP = catchAsync(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  const isVerified = await authService.verifyOtp(req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "OTP verified successfully",
+    data: { verified: isVerified }
+  });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email, newPassword } = req.body;
+
+  await authService.resetPassword(req.body);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Password reset successfully",
+    data: null
+  });
+});
+
 export const authController = {
   login,
-  logOut
+  logOut,
+  resetPassword,
+  verifyOTP,
+  forgotPassword
 };

@@ -1,11 +1,11 @@
-import { z } from "zod";
 import { TripStatus } from "@prisma/client";
+import { z } from "zod";
 
 // If you accept date strings (e.g. via JSON), you can coerce them into Date:
 const dateSchema = z.preprocess((arg) => {
   if (typeof arg === "string" || arg instanceof Date) {
     const d = new Date(arg);
-    if (!isNaN(d.getTime())) return d;
+    if (!Number.isNaN(d.getTime())) return d;
   }
   return arg;
 }, z.date());
