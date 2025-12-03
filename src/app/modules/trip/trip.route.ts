@@ -5,12 +5,58 @@ import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
 import { Router } from "express";
 import { TripController } from "./trip.controller";
-import { createTripZodSchema } from "./trip.zodSchema";
+import { createTripZodSchema, updateTripSchema } from "./trip.zodSchema";
+
+const router = Router();
 
 
-const router = Router()
+// CREATE TRIP
+router.post(
+  "/create-trip",
+  validateRequest(createTripZodSchema),
+  checkAuth(Role.EXPLORER),
+  TripController.createTrip
+);
 
-router.post("/create-trip", validateRequest(createTripZodSchema), checkAuth(Role.EXPLORER),TripController.createTrip);
+
+// UPDATE TRIP
+router.patch(
+  "/update-trip/:id",
+  validateRequest(updateTripSchema),
+  checkAuth(Role.EXPLORER),
+  TripController.updateTrip
+);
 
 
-export const tripRouter = router
+// GET SINGLE TRIP
+router.get(
+  "/trip/:id",
+  TripController.getTripById
+);
+
+
+// GET ALL TRIPS (public or explorer?)
+// You choose — I assume Explorer only
+
+router.get(
+  "/",
+  TripController.getAllTrips
+);
+
+
+// GET LOGGED-IN USER TRIPS
+router.get(
+  "/my-trips",
+  checkAuth(Role.EXPLORER),
+  TripController.getMyTrips
+);
+
+
+// DELETE TRIP
+router.delete(
+  "/delete-trip/:id",
+  checkAuth(Role.EXPLORER),
+  TripController.deleteTrip
+);
+
+export const tripRouter = router;
