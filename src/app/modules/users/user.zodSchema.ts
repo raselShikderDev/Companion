@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createExplorerZodSchema = z.object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
     explorer: z.object({
         fullName: z.string().min(3, "Full name is too short"),
@@ -16,7 +16,7 @@ export const createExplorerZodSchema = z.object({
 
 
 export const createAdminZodSchema = z.object({
-    email: z.string().email("Invalid email format"),
+    email: z.email("Invalid email format"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
     admin: z.object({
         fullName: z.string().min(3, "Full name is too short"),
