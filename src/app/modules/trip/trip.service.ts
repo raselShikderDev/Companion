@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/useImportType: > */
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
@@ -52,12 +53,10 @@ export const createTrip = async (data: createTripInput, userId: string) => {
       },
     });
 
-    // Optionally, update explorer updatedAt (or other info)
     await prismaTx.explorer.update({
       where: { id: explorer.id },
       data: {
         updatedAt: new Date(),
-        // If you had other fields to update, you can do here
       },
     });
 
@@ -117,6 +116,7 @@ export const updateTrip = async (tripId: string, data: UpdateTripInput, userId: 
 
   return updatedTrip;
 };
+// http://localhost:5000/api/v1/trip/42f75134-620e-4897-bca1-ec3774db473d
 
 
 export const getTripById = async (tripId: string) => {
@@ -135,7 +135,9 @@ export const getAllTrips = async () => {
   });
 };
 
-export const getUserTrips = async (userId: string) => {
+export const getMyTrips = async (userId: string) => {
+  console.log({userId});
+  
   return prisma.trip.findMany({
     where: { creator: { userId } },
     include: { creator: true },
@@ -160,6 +162,6 @@ export const TripService = {
   updateTrip,
   getTripById,
   getAllTrips,
-  getUserTrips,
+  getMyTrips,
   deleteTrip,
 }

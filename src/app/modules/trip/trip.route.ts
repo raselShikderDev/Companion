@@ -17,17 +17,17 @@ router.post(
   TripController.createTrip
 );
 
-// Update trip
-router.patch("/:id", checkAuth(Role.EXPLORER), TripController.updateTrip);
-
-// Get single trip
-router.get("/:id", TripController.getTripById);
-
 // Get all trips
 router.get("/", TripController.getAllTrips);
 
 // Get logged-in user's trips
-router.get("/me/list", checkAuth(Role.EXPLORER), TripController.getMyTrips);
+router.get("/my-list", checkAuth(Role.EXPLORER), TripController.getMyTrips);
+
+// Get single trip
+router.get("/:id", TripController.getTripById);
+
+// Update trip
+router.patch("/:id", checkAuth(Role.EXPLORER), TripController.updateTrip);
 
 // Delete trip
 router.delete("/:id", checkAuth(Role.EXPLORER), TripController.deleteTrip);
