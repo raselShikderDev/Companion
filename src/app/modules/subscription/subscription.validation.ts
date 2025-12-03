@@ -17,7 +17,7 @@ export const paymentCallbackSchema = z.object({
 
 
 export const createSubscriptionSchema = z.object({
-  plan: z.nativeEnum(SubscriptionPlan).refine(p => p !== SubscriptionPlan.FREE, {
+  plan: z.enum(SubscriptionPlan).refine(p => p !== SubscriptionPlan.FREE, {
     message: "Cannot purchase FREE plan",
   }),
 });

@@ -2,15 +2,10 @@ import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
 import { CreateMatchInput, UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, SubscriptionPlan } from "@prisma/client";
 import { PLANS } from "../subscription/plan.config";
 
-/**
- * Create a match request from the logged-in explorer (identified by userId) to the recipient explorer (recipientId).
- * - Prevent self-matching
- * - Prevent duplicate matches (unique constraint check)
- * - Update both explorers' updatedAt in the same transaction
- */
+
 // export const createMatch = async (data: CreateMatchInput, userId: string) => {
 //   // 1) find requester explorer based on userId
 //   const requester = await prisma.explorer.findFirst({
@@ -80,7 +75,7 @@ export const createMatch = async (requesterUserId: string, input: CreateMatchInp
   if (!requester) throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
 
   // Determine allowed matches for requester's plan
-  const planName = requester.subscription?.planName || "FREE";
+  const planName = requester.subscription?.planName || SubscriptionPlan.FREE;
   const allowedMatches = PLANS[planName].allowedMatches;
   const totalMatches = (requester.outgoingMatches?.length || 0) + (requester.incomingMatches?.length || 0);
 
