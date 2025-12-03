@@ -62,6 +62,7 @@ model User {
     role      Role       @default(EXPLORER)
     status    UserStatus @default(ACTIVE)
     isDeleted Boolean    @default(false)
+    emailConfirmed Boolean    @default(false)
     createdAt DateTime   @default(now())
     updatedAt DateTime   @updatedAt
 

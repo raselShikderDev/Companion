@@ -4,6 +4,7 @@ import { userRouter } from "../modules/users/users.route";
 import { authRouter } from "../modules/auth/auth.route";
 import { tripRouter } from "../modules/trip/trip.route";
 import { matchRouter } from "../modules/match/match.routes";
+import { emailRouter } from "../modules/email/email.router";
 
 
 const router = Router()
@@ -24,6 +25,10 @@ const routerModules = [
     {
         path:"/match",
         route:matchRouter
+    },
+    {
+        path:"/email",
+        route:emailRouter
     },
 ]
 

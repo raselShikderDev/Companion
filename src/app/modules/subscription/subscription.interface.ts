@@ -14,3 +14,25 @@ export interface PaymentVerificationPayload {
   status?: string;
   // other sslcommerz fields sent back
 }
+
+
+
+export type PlanInfo = {
+  name: SubscriptionPlan;
+  priceBDT: number;
+  allowedMatches: number;
+  durationDays: number;
+};
+
+export interface CreateSubscriptionInput {
+  plan: SubscriptionPlan; // "STANDARD" | "PREMIUM"
+}
+
+export interface PaymentRecord {
+  provider: string;
+  providerTxId?: string;
+  amount: number;
+  currency: string;
+  status: "PENDING" | "PAID" | "FAILED";
+  metadata?: Record<string, any>;
+}

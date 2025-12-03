@@ -1,12 +1,159 @@
 
 import { prisma } from "../../configs/db.config";
-import { PLANS } from "./plan.config";
-import { CreatePaymentInput } from "./subscription.interface";
+
+import { CreatePaymentInput, CreateSubscriptionInput } from "./subscription.interface";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
 import { PaymentStatus, SubscriptionPlan } from "@prisma/client";
 import { envVars } from "../../configs/envVars";
+import { PLANS } from "./plan.config";
+import crypto from "crypto";
 
+/**
+ * Create payment session for SSLCommerz
+ * - Creates a PENDING Payment row and returns a paymentUrl or payload for the frontend
+ */
+ const createSubscription = async (userId: string, input: CreateSubscriptionInput) => {
+  // 1. Resolve explorer by userId
+  const explorer = await prisma.explorer.findFirst({ where: { userId } });
+  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+
+  const plan = PLANS[input.plan as SubscriptionPlan];
+  if (!plan || plan.priceBDT <= 0) throw new customError(StatusCodes.BAD_REQUEST, "Invalid plan");
+
+  // 2. Create a Payment record (PENDING)
+  const txReference = crypto.randomUUID(); // idempotency token
+  const amount = plan.priceBDT;
+
+  const payment = await prisma.payment.create({
+    data: {
+      explorerId: explorer.id,
+      amount: amount,
+      currency: "BDT",
+      status: PaymentStatus.PENDING,
+      planName:plan.name,
+      transactionId:txReference,
+      gateway:"SSLCOMMERZ",
+      rawResponse: { plan: plan.name, userId },
+    },
+  });
+
+  // 3. Build SSLCommerz request payload (example)
+  // NOTE: you must construct per SSLCommerz docs — I show a sample
+  const sslPayload = {
+    store_id: envVars.SSL.SSL_STORE_ID as string,
+    store_passwd: process.env.SSLCOMMERZ_STORE_PASS,
+    total_amount: amount,
+    currency: "BDT",
+    tran_id: payment.transactionId, // use the txReference as tran_id
+    success_url: `${process.env.APP_URL}/api/subscriptions/webhook/sslcommerz`, // they will call webhook
+    fail_url: `${process.env.APP_URL}/payment/failed`,
+    cancel_url: `${process.env.APP_URL}/payment/cancel`,
+    cus_name: explorer.fullName,
+    cus_email: (await prisma.user.findUnique({ where: { id: explorer.userId } }))?.email,
+    // product_category, shipping_method, value_a etc...
+    value_a: explorer.id,
+  };
+
+  // Return payment record + payload for client to request SSLCommerz checkout
+  // You might call SSLCommerz API server-side here to get a Gateway URL
+  return { payment, sslPayload };
+};
+
+/**
+ * Handler for SSLCommerz webhook/callback — must be idempotent and securely verify
+ * This should be called by SSLCommerz server side when payment succeed/fail
+ */
+ const handleSslCommerzCallback = async (body: any) => {
+  // Validate body shape (use the zod schema earlier in controller)
+  const data = body;
+
+  // Important: verify store_id / validation as per SSLCommerz docs if available.
+  // Example basic verification:
+  const tranId = String(data.tran_id || data.value_a || data.val_id);
+  const status = String(data.status || "").toUpperCase(); // "VALID" or "FAILED"? depends on provider
+  const amount = Number(data.amount || data.total_amount || 0);
+
+  // Find our Payment by providerTxId (we used tran_id = providerTxId)
+  const payment = await prisma.payment.findUnique({ where: { transactionId: tranId } });
+
+  if (!payment) {
+    // If no payment found by tranId, try to find using other metadata
+    // log and ignore (avoid throwing)
+    throw new customError(StatusCodes.NOT_FOUND, "Payment not found");
+  }
+
+  // Idempotency: if already PAID, ignore
+  if (payment.status === "PAID") {
+    return payment;
+  }
+
+  // Validate amount matches plan amount from metadata
+  const metadata = payment.rawResponse as any;
+  const planName: SubscriptionPlan = metadata?.plan;
+  const plan = PLANS[planName];
+  if (!plan) throw new customError(StatusCodes.BAD_REQUEST, "Invalid plan on payment");
+
+  if (amount !== plan.priceBDT) {
+    // Potential tampering: do not activate subscription
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: "FAILED", rawResponse: { ...payment.rawResponse as any, providerBody: data } },
+    });
+    throw new customError(StatusCodes.BAD_REQUEST, "Amount mismatch");
+  }
+
+  // If provider indicates success, perform transaction:
+  if (status === "VALID" || status === "SUCCESS" || status === "Completed") {
+    // Use transaction to create Subscription, update Explorer.isPremium, and update Payment to PAID
+    const explorerId = payment.explorerId;
+    const startDate = new Date();
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + plan.durationDays);
+
+    const [updatedPayment, createdSubscription, updatedExplorer] = await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: "PAID",
+          transactionId: data.val_id || data.val_id || payment.transactionId, // provider's tx id if present
+          rawResponse: { ...payment.rawResponse as any, providerBody: data },
+        },
+      }),
+      prisma.subscription.upsert({
+        where: { explorerId },
+        update: {
+          planName: plan.name,
+          startDate,
+          endDate,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+        create: {
+          explorerId,
+          planName: plan.name,
+          startDate,
+          endDate,
+          isActive: true,
+        },
+      }),
+      prisma.explorer.update({
+        where: { id: explorerId },
+        data: {
+          isPremium: plan.name === "PREMIUM" || plan.name === "STANDARD", // or however you decide
+          updatedAt: new Date(),
+        },
+      }),
+    ]);
+
+    // return result
+    return { payment: updatedPayment, subscription: createdSubscription, explorer: updatedExplorer };
+  } else {
+    // Mark failed
+    await prisma.payment.update({ where: { id: payment.id }, data: { status: "FAILED", rawResponse: { ...payment.rawResponse as any, providerBody: data } } });
+    throw new customError(StatusCodes.BAD_REQUEST, "Payment failed");
+  }
+};
 
 
 function buildSslCommerzRequestBody({
@@ -50,15 +197,15 @@ function buildSslCommerzRequestBody({
   };
 }
 
-export const initiatePayment = async (userId: string, input: CreatePaymentInput) => {
+ const initiatePayment = async (userId: string, input: CreatePaymentInput) => {
   const planKey = input.plan as keyof typeof PLANS;
   const planCfg = PLANS[planKey];
   if (!planCfg || planKey === SubscriptionPlan.FREE) {
     throw new customError(StatusCodes.BAD_REQUEST, "Invalid plan");
   }
 
-  const amount = input.amount ?? planCfg.price;
-  if (amount !== planCfg.price) {
+  const amount = input.amount ?? planCfg.priceBDT;
+  if (amount !== planCfg.priceBDT) {
     // Protect against forged custom amounts
     throw new customError(StatusCodes.BAD_REQUEST, "Invalid amount for selected plan");
   }
@@ -124,7 +271,7 @@ export const initiatePayment = async (userId: string, input: CreatePaymentInput)
  * verifyAndFinalizePayment
  * Called on IPN/webhook or after redirect to your success URL (server should contact SSLCommerz validation API)
  */
-export const verifyAndFinalizePayment = async (payload: any) => {
+ const verifyAndFinalizePayment = async (payload: any) => {
   // payload will contain tran_id or val_id depending on flow
   const tranId = payload.tran_id ?? payload.tran_id;
   if (!tranId) {
@@ -230,3 +377,11 @@ export const verifyAndFinalizePayment = async (payload: any) => {
     return { success: false, reason: "Payment validation failed", raw: valJson };
   }
 };
+
+
+export const subscriptionService ={
+    initiatePayment,
+    verifyAndFinalizePayment,
+    createSubscription,
+    handleSslCommerzCallback
+}
