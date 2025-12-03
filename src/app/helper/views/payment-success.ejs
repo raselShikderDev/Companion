@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Confirmation</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Payment Successful!</h2>
+    <p>Transaction ID: <strong><%= transactionId %></strong></p>
+    <p>Amount Paid: <strong><%= amount %></strong></p>
+    <p>Your subscription to <strong><%= planName %></strong> is now active.</p>
+    <a href="/dashboard">Go to Dashboard</a>
+  </div>
+</body>
+</html>
