@@ -43,7 +43,40 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
     })
 })
 
+ const updateProfilePicture = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
+    const updated = await userService.updateProfilePicture(
+      userId,
+      req.body
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Profile picture updated successfully",
+      data: updated,
+    });
+  }
+);
+
+export const updateUserProfile = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new customError(StatusCodes.UNAUTHORIZED,"Unauthorized" );
+
+    const updated = await userService.updateUserProfile(userId, req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Profile updated successfully",
+      data: updated,
+    });
+  }
+);
 
 const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     sendResponse(res, {
@@ -55,8 +88,12 @@ const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFun
 })
 
 
+
+
 export const userController = {
     getAllUsers,
     createExplorer,
-    createAdmin
+    createAdmin,
+    updateUserProfile,
+    updateProfilePicture,
 }
