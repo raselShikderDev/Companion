@@ -44,6 +44,27 @@ const logOut = catchAsync(
   }
 );
 
+
+export const refreshToken = catchAsync(
+  async (req: Request, res: Response) => {
+    const refreshToken = (req as any).refreshToken;
+
+    const newTokens = await authService.refreshToken(refreshToken);
+
+    await setAuthCookie(res, newTokens);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Access token refreshed successfully",
+      data: {
+        accessToken: newTokens.accessToken,
+      },
+    });
+  }
+)
+
+
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -88,5 +109,6 @@ export const authController = {
   logOut,
   resetPassword,
   verifyOTP,
-  forgotPassword
+  forgotPassword,
+  refreshToken,
 };
