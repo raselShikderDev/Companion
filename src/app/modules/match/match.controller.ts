@@ -14,8 +14,8 @@ export const createMatch = catchAsync(async (req: Request, res: Response, next: 
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-  const parsed = createMatchSchema.parse(req.body);
-  const created = await matchService.createMatch(parsed, userId);
+ 
+  const created = await matchService.createMatch(userId, req.body);
 
   sendResponse(res, {
     success: true,
@@ -34,9 +34,8 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const matchId = req.params.id;
-  const parsed = updateMatchStatusSchema.parse(req.body);
 
-  const updated = await matchService.updateMatchStatus(matchId, parsed, userId);
+  const updated = await matchService.updateMatchStatus(matchId, userId, req.body);
 
   sendResponse(res, {
     success: true,
@@ -58,6 +57,12 @@ export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
     message: "Matches fetched successfully",
     data: matches,
   });
+});
+
+
+const getSingleMatch = catchAsync(async (req: Request, res: Response) => {
+  const data = await matchService.  getSingleMatch(req.params.id);
+  sendResponse(res, { success: true, statusCode: StatusCodes.OK, message: "Match fetched", data });
 });
 
 /**
@@ -102,4 +107,5 @@ export const matchController = {
   getAllMatches,
   getMyMatches,
   deleteMatch,
+  getSingleMatch,
 };

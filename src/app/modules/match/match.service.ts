@@ -69,7 +69,7 @@ import { PLANS } from "../subscription/plan.config";
 //   return created;
 // };
 
-export const createMatch = async (requesterUserId: string, input: CreateMatchInput) => {
+const createMatch = async (requesterUserId: string, input: CreateMatchInput) => {
   // Find requester explorer
   const requester = await prisma.explorer.findFirst({ where: { userId: requesterUserId }, include: { subscription: true, outgoingMatches: true, incomingMatches: true } });
   if (!requester) throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
@@ -161,7 +161,7 @@ export const createMatch = async (requesterUserId: string, input: CreateMatchInp
 // };
 
 
-export const updateMatchStatus = async (matchId: string, actingUserId: string, input: UpdateMatchStatusInput) => {
+const updateMatchStatus = async (matchId: string, actingUserId: string, input: UpdateMatchStatusInput) => {
   const match = await prisma.match.findUnique({ where: { id: matchId }, include: { requester: true, recipient: true } });
   if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
 
@@ -190,10 +190,22 @@ export const updateMatchStatus = async (matchId: string, actingUserId: string, i
 };
 
 
+const getSingleMatch = async (id: string) => {
+  const match = await prisma.match.findUnique({
+    where: { id },
+    include: { requester: true, recipient: true },
+  });
+
+  if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
+
+  return match;
+};
+
+
 /**
  * Get all matches (admin / public). Include explorer basics.
  */
-export const getAllMatches = async () => {
+const getAllMatches = async () => {
   return prisma.match.findMany({
     include: {
       requester: {
@@ -210,7 +222,7 @@ export const getAllMatches = async () => {
 /**
  * Get matches for the logged-in explorer
  */
-export const getMyMatches = async (userId: string) => {
+const getMyMatches = async (userId: string) => {
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
   if (!explorer) {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
@@ -233,7 +245,7 @@ export const getMyMatches = async (userId: string) => {
  * - Only requester or recipient can delete
  * - Transactionally delete match and touch explorers' updatedAt
  */
-export const deleteMatch = async (matchId: string, userId: string) => {
+const deleteMatch = async (matchId: string, userId: string) => {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: { requester: true, recipient: true },
@@ -276,4 +288,5 @@ export const matchService = {
   getAllMatches,
   getMyMatches,
   deleteMatch,
+  getSingleMatch,
 };

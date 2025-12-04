@@ -68,6 +68,10 @@ router.get(
   matchController.getAllMatches
 );
 
+router.get("/:id", checkAuth(Role.ADMIN), matchController.  getSingleMatch,
+);
+
+
 // Get logged-in user's matches
 router.get(
   "/my-matches",
