@@ -7,12 +7,19 @@ import { createSubscriptionSchema, initiatePaymentSchema } from "./subscription.
 
 const router = Router();
 
+
+router.get("/", checkAuth(Role.ADMIN), subscriptionController.getAllSubscription);
+router.get("/:id", checkAuth(Role.ADMIN), subscriptionController.getSingleSubscription);
+router.get("/my-subscripion", checkAuth(Role.EXPLORER, Role.ADMIN), subscriptionController.getMySubscription);
+
 router.post("/initiate", checkAuth(Role.EXPLORER), validateRequest(initiatePaymentSchema), subscriptionController.initiatePayment);
 
 router.post("/create", checkAuth(Role.EXPLORER), validateRequest(createSubscriptionSchema), subscriptionController.createSubscription);
 
 // SSLCommerz webhook endpoint (provider will call)
 router.post("/webhook/sslcommerz", subscriptionController.sslcommerzWebhook);
+
+
 
 export const subscriptionRouter = router;
 

@@ -241,11 +241,53 @@ const verifyAndFinalizePayment = async (payload: any) => {
  */
 const handleSslCommerzCallback = verifyAndFinalizePayment;
 
+
+
+
+const getAllSubscription = async () => {
+  return prisma.subscription.findMany({
+    include: { explorer: true },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+const getSingleSubscription = async (id: string) => {
+  const subscription = await prisma.subscription.findUnique({
+    where: { id },
+    include: { explorer: true },
+  });
+
+  if (!subscription)
+    throw new customError(StatusCodes.NOT_FOUND, "Subscription not found");
+
+  return subscription;
+};
+
+const getMySubscription = async (userId: string) => {
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+    include: { subscription: true },
+  });
+
+  if (!explorer)
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer profile not found");
+
+  return explorer.subscription ?? null;
+};
+
+
+
+
+
+
 export const subscriptionService = {
   initiatePayment,
   verifyAndFinalizePayment,
   createSubscription,
   handleSslCommerzCallback,
+  getMySubscription,
+  getSingleSubscription,
+  getAllSubscription,
 };
 
 
