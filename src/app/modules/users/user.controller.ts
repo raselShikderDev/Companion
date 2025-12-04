@@ -78,22 +78,51 @@ export const updateUserProfile = catchAsync(
   }
 );
 
-const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    sendResponse(res, {
-        success: true,
-        statusCode: 500,
-        message: "All users",
-        data: null
-    })
-})
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await userService.getAllUsers();
 
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "All users fetched successfully",
+    data: users,
+  });
+});
+
+const getSingleUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const user = await userService.getSingleUser(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User fetched successfully",
+    data: user,
+  });
+});
+
+const getMe = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id as string;
+
+  const user = await userService.getSingleUser(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Profile fetched successfully",
+    data: user,
+  });
+});
 
 
 
 export const userController = {
-    getAllUsers,
     createExplorer,
     createAdmin,
     updateUserProfile,
     updateProfilePicture,
+    getAllUsers,
+  getSingleUser,
+  getMe,
 }

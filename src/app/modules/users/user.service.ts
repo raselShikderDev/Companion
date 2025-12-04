@@ -204,12 +204,58 @@ const updateUserProfile = async (
   return updated;
 };
 
+const getAllUsers = async () => {
+  const users = await prisma.user.findMany({
+    include: {
+      explorers: true,
+      admins: true,
+    },
+  });
+
+  return users.map(safeUser);
+};
+
+const getSingleUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      explorers: true,
+      admins: true,
+    },
+  });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  return safeUser(user);
+};
+
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      explorers: true,
+      admins: true,
+    },
+  });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  return user;
+};
+
 
 export const userService = {
   createExplorer,
   createAdmin,
   updateProfilePicture,
-  updateUserProfile
+  updateUserProfile,
+  getAllUsers,
+  getSingleUser,
+  getMe,
 };
 
 

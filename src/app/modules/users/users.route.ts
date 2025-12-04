@@ -27,6 +27,25 @@ router.patch(
   validateRequest(updateUserProfileSchema),
   userController.updateUserProfile
 );
-router.get("/", userController.getAllUsers);
+// Get all users (Admin only)
+router.get(
+  "/",
+  checkAuth(Role.ADMIN),
+  userController.getAllUsers
+);
+
+// Get single user by ID (Admin only)
+router.get(
+  "/:id",
+  checkAuth(Role.ADMIN),
+  userController.getSingleUser
+);
+
+// Get logged-in user profile (Admin + Explorer)
+router.get(
+  "/me",
+  checkAuth(Role.ADMIN, Role.EXPLORER),
+  userController.getMe
+);
 
 export const userRouter = router
