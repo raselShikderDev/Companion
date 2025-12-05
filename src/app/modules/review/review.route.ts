@@ -11,7 +11,7 @@ const router = Router();
 router.post(
   "/create",
   validateRequest(createReviewSchema),
-  checkAuth(Role.EXPLORER),
+   checkAuth(Role.EXPLORER),
   ReviewController.createReview
 );
 

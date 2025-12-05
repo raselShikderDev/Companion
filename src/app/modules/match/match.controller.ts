@@ -44,7 +44,7 @@ import customError from "../../shared/customError";
  */
 export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
   const matchId = req.params.id;
 
@@ -85,7 +85,7 @@ const getSingleMatch = catchAsync(async (req: Request, res: Response) => {
  */
 export const getMyMatches = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
   const matches = await matchService.getMyMatches(userId);
   sendResponse(res, {

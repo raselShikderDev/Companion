@@ -10,12 +10,19 @@ import { MatchStatus, ReviewStatus } from "@prisma/client";
 const createReview = async (userId: string, data: CreateReviewInput) => {
   const { matchId, rating, comment } = data;
 
-  // 1. Get Match + Trip
+  // ✅ 1. Convert USER → EXPLORER
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
+
+  if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  // ✅ 2. Get Match + Trip
   const match = await prisma.match.findUnique({
     where: { id: matchId },
-    include: {
-      trip: true,
-    },
+    include: { trip: true },
   });
 
   if (!match) {
@@ -23,22 +30,23 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
   }
 
   console.log({
-    "match.recipientId": match.recipientId,
-    userId,
-    "match.requesterId": match.requesterId,
-    "match.requesterId !== userId": match.requesterId !== userId,
-    "match.recipientId !== userId": match.recipientId !== userId,
+    explorerId: explorer.id,
+    matchRequester: match.requesterId,
+    matchRecipient: match.recipientId,
   });
 
-  // 2. User must be part of match
-  if (match.requesterId !== userId && match.recipientId !== userId) {
+  // ✅ 3. TRUE MATCH MEMBERSHIP CHECK (FIXED)
+  if (
+    match.requesterId !== explorer.id &&
+    match.recipientId !== explorer.id
+  ) {
     throw new customError(
       StatusCodes.FORBIDDEN,
       "You are not part of this match"
     );
   }
 
-  // 3. Match must be ACCEPTED
+  // ✅ 4. Match must be ACCEPTED
   if (match.status !== MatchStatus.ACCEPTED) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
@@ -46,7 +54,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // 4. Trip must be completed
+  // ✅ 5. Trip must be completed
   if (!match.trip.matchCompleted) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
@@ -54,11 +62,11 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // 5. Prevent duplicate review
+  // ✅ 6. Prevent duplicate review
   const alreadyReviewed = await prisma.review.findFirst({
     where: {
       matchId,
-      reviewerId: userId,
+      reviewerId: explorer.id, // ✅ FIXED
     },
   });
 
@@ -69,12 +77,12 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // ✅ 6. Create review safely inside transaction
+  // ✅ 7. Create review safely
   const review = await prisma.$transaction(async (tx) => {
     return await tx.review.create({
       data: {
         matchId,
-        reviewerId: userId,
+        reviewerId: explorer.id, // ✅ FIXED
         rating,
         comment,
         status: ReviewStatus.APPROVED,
@@ -84,6 +92,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
 
   return review;
 };
+
 
 const getAllReviews = async (query: Record<string, string>) => {
   //   return prisma.review.findMany({

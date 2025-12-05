@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/correctness/noUnusedImports: > */
 import { TripStatus } from "@prisma/client";
 
 export interface createTripInput {
@@ -27,5 +28,4 @@ export interface UpdateTripInput {
   journeyType?: string[];
   duration?: string;
   Languages?: string[];
-  status?: TripStatus;
 }

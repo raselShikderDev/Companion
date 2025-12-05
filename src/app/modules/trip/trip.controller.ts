@@ -7,6 +7,7 @@ import { TripService } from "./trip.service";
 import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../shared/sendResponse";
 import customError from "../../shared/customError";
+import { TripStatus } from "@prisma/client";
 
 // Create trip
 export const createTrip = catchAsync(
@@ -110,6 +111,29 @@ export const deleteTrip = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+const updateTripStatus =  catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const tripId = req.params.id;
+
+  if (!userId) {
+    throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  }
+
+  const result = await TripService.updateTripStatus(
+    tripId,
+    userId,
+    req.body.status as TripStatus,
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Trip successfully completed",
+    data: result,
+  });
+});
+
 export const TripController = {
   createTrip,
   updateTrip,
@@ -117,4 +141,5 @@ export const TripController = {
   getAllTrips,
   getMyTrips,
   deleteTrip,
+  updateTripStatus,
 };

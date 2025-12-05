@@ -315,6 +315,7 @@ const getMyMatches = async (userId: string) => {
     include: {
       requester: { select: { id: true, fullName: true, userId: true, profilePicture: true } },
       recipient: { select: { id: true, fullName: true, userId: true, profilePicture: true } },
+      trip:true,
     },
     orderBy: { createdAt: "desc" },
   });

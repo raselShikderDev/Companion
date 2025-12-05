@@ -5,9 +5,10 @@ import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { createTripInput, UpdateTripInput } from "./trip.interface";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
+import { MatchStatus, TripStatus } from "@prisma/client";
 
 
-export const createTrip = async (data: createTripInput, userId: string) => {
+ const createTrip = async (data: createTripInput, userId: string) => {
   // Find the Explorer
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
@@ -90,7 +91,7 @@ export const createTrip = async (data: createTripInput, userId: string) => {
 // }
 
 
-export const updateTrip = async (tripId: string, data: UpdateTripInput, userId: string) => {
+ const updateTrip = async (tripId: string, data: UpdateTripInput, userId: string) => {
   // Find the trip and its creator
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
@@ -121,7 +122,7 @@ export const updateTrip = async (tripId: string, data: UpdateTripInput, userId: 
 // http://localhost:5000/api/v1/trip/42f75134-620e-4897-bca1-ec3774db473d
 
 
-export const getTripById = async (tripId: string) => {
+ const getTripById = async (tripId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
     include: { creator: true },
@@ -130,7 +131,7 @@ export const getTripById = async (tripId: string) => {
   return trip;
 };
 
-export const getAllTrips = async (query: Record<string, string>) => {
+ const getAllTrips = async (query: Record<string, string>) => {
   // return prisma.trip.findMany({
   //   include: { creator: true },
   //   orderBy: { createdAt: "desc" },
@@ -156,7 +157,7 @@ export const getAllTrips = async (query: Record<string, string>) => {
 
 };
 
-export const getMyTrips = async (userId: string) => {
+ const getMyTrips = async (userId: string) => {
   console.log({ userId });
 
   return prisma.trip.findMany({
@@ -166,7 +167,7 @@ export const getMyTrips = async (userId: string) => {
   });
 };
 
-export const deleteTrip = async (tripId: string, userId: string) => {
+ const deleteTrip = async (tripId: string, userId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
     include: { creator: true },
@@ -178,6 +179,91 @@ export const deleteTrip = async (tripId: string, userId: string) => {
   return prisma.trip.delete({ where: { id: tripId } });
 };
 
+
+const updateTripStatus = async (
+  tripId: string,
+  userId: string,
+  newStatus:TripStatus,
+) => {
+  // ✅ 1. Convert USER → EXPLORER
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
+
+  if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  // ✅ 2. Load trip with ACCEPTED matches only
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: {
+      matches: {
+        where: {
+          status: MatchStatus.ACCEPTED,
+        },
+      },
+    },
+  });
+
+  if (!trip) {
+    throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
+  }
+
+  // ✅ 3. Must either be:
+  // - trip creator
+  // - OR part of an accepted match
+  const isCreator = trip.creatorId === explorer.id;
+  const isMatchedUser = trip.matches.some(
+    (m) =>
+      m.requesterId === explorer.id ||
+      m.recipientId === explorer.id
+  );
+
+  if (!isCreator && !isMatchedUser) {
+    throw new customError(
+      StatusCodes.FORBIDDEN,
+      "You are not allowed to complete this trip"
+    );
+  }
+
+  // ✅ 4. Already completed protection
+  if (trip.status === TripStatus.COMPLETED || trip.status === TripStatus.CANCELLED) {
+    throw new customError(
+      StatusCodes.CONFLICT,
+      `Trip is already marked as ${trip.status}`
+    );
+  }
+
+  // ✅ 5. TRANSACTION-SAFE UPDATE
+  const updatedTrip = await prisma.$transaction(async (tx) => {
+    // ✅ lock-style recheck inside transaction
+    const freshTrip = await tx.trip.findUnique({
+      where: { id: tripId , matchCompleted: true },
+    });
+
+    if (freshTrip?.status === TripStatus.COMPLETED) {
+      throw new customError(
+        StatusCodes.CONFLICT,
+        "Trip already marked as completed"
+      );
+    }
+
+    const result = await tx.trip.update({
+      where: { id: tripId },
+      data: {
+        status: newStatus,
+        updatedAt: new Date(),
+      },
+    });
+
+    return result;
+  });
+
+  return updatedTrip;
+};
+
+
 export const TripService = {
   createTrip,
   updateTrip,
@@ -185,4 +271,5 @@ export const TripService = {
   getAllTrips,
   getMyTrips,
   deleteTrip,
+  updateTripStatus,
 }
