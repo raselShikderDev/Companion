@@ -1,10 +1,11 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
-import { CreateMatchInput, UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus, SubscriptionPlan } from "@prisma/client";
-import { PLANS } from "../subscription/plan.config";
-
+import { UpdateMatchStatusInput } from "./match.interface";
+import { MatchStatus } from "@prisma/client";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 // export const createMatch = async (data: CreateMatchInput, userId: string) => {
 //   // 1) find requester explorer based on userId
@@ -69,44 +70,105 @@ import { PLANS } from "../subscription/plan.config";
 //   return created;
 // };
 
-export const createMatch = async (requesterUserId: string, input: CreateMatchInput) => {
-  // Find requester explorer
-  const requester = await prisma.explorer.findFirst({ where: { userId: requesterUserId }, include: { subscription: true, outgoingMatches: true, incomingMatches: true } });
-  if (!requester) throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
+const createMatch = async (requesterUserId: string, tripId: string) => {
+  // 1. Get Trip + Creator
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: { creator: true },
+  });
 
-  // Determine allowed matches for requester's plan
-  const planName = requester.subscription?.planName || SubscriptionPlan.FREE;
-  const allowedMatches = PLANS[planName].allowedMatches;
-  const totalMatches = (requester.outgoingMatches?.length || 0) + (requester.incomingMatches?.length || 0);
-
-  if (totalMatches >= allowedMatches) {
-    throw new customError(StatusCodes.FORBIDDEN, "Match limit reached. Please upgrade subscription.");
+  if (!trip) {
+    throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   }
 
-  // Ensure recipient exists
-  const recipient = await prisma.explorer.findUnique({ where: { id: input.recipientId } });
-  if (!recipient) throw new customError(StatusCodes.NOT_FOUND, "Recipient not found");
+  // 2. Get Requester Explorer
+  const requester = await prisma.explorer.findFirst({
+    where: { userId: requesterUserId },
+  });
 
-  // Use transaction to create match and optionally update some counters
+  if (!requester) {
+    throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
+  }
+
+  // 3. Prevent Self Match
+  if (requester.id === trip.creatorId) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "You cannot match with your own trip"
+    );
+  }
+
+  // 4. Check Recipient (Trip Creator)
+  const recipient = await prisma.explorer.findUnique({
+    where: { id: trip.creatorId },
+  });
+
+  if (!recipient) {
+    throw new customError(StatusCodes.NOT_FOUND, "Recipient not found");
+  }
+
+  // 5. Prevent match on completed trip
+  if (trip.matchCompleted) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Trip matching is already closed"
+    );
+  }
+
+  // 6. Prevent duplicate match in BOTH directions
+  const existingMatch = await prisma.match.findFirst({
+    where: {
+      tripId,
+      OR: [
+        {
+          requesterId: requester.id,
+          recipientId: trip.creatorId,
+        },
+        {
+          requesterId: trip.creatorId,
+          recipientId: requester.id,
+        },
+      ],
+    },
+  });
+
+  if (existingMatch) {
+    throw new customError(
+      StatusCodes.CONFLICT,
+      "Match already exists for this trip"
+    );
+  }
+
+  // ✅ 7. Create match safely inside transaction
   const match = await prisma.$transaction(async (tx) => {
     const newMatch = await tx.match.create({
       data: {
         requesterId: requester.id,
-        recipientId: recipient.id,
-        status: "PENDING",
+        recipientId: trip.creatorId,
+        tripId,
+        status: MatchStatus.PENDING,
+      },
+      include: {
+        requester: true,
+        recipient: true,
+        trip: true,
       },
     });
 
-    // Optionally update both explorers updatedAt (or counts) atomically
-    await tx.explorer.update({ where: { id: requester.id }, data: { updatedAt: new Date() } });
-    await tx.explorer.update({ where: { id: recipient.id }, data: { updatedAt: new Date() } });
+    await tx.trip.update({
+      where: {
+        id: tripId,
+      },
+      data: {
+        matchCompleted: true,
+      },
+    });
 
     return newMatch;
   });
 
   return match;
 };
-
 
 /**
  * Update match status
@@ -160,26 +222,41 @@ export const createMatch = async (requesterUserId: string, input: CreateMatchInp
 //   return updated;
 // };
 
-
-export const updateMatchStatus = async (matchId: string, actingUserId: string, input: UpdateMatchStatusInput) => {
-  const match = await prisma.match.findUnique({ where: { id: matchId }, include: { requester: true, recipient: true } });
+const updateMatchStatus = async (
+  matchId: string,
+  actingUserId: string,
+  input: UpdateMatchStatusInput
+) => {
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    include: { requester: true, recipient: true },
+  });
   if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
 
   // Only requester or recipient can change status; recipient typically accepts/rejects
-  const actingExplorer = await prisma.explorer.findFirst({ where: { userId: actingUserId } });
-  if (!actingExplorer) throw new customError(StatusCodes.NOT_FOUND, "User not found as explorer");
+  const actingExplorer = await prisma.explorer.findFirst({
+    where: { userId: actingUserId },
+  });
+  if (!actingExplorer)
+    throw new customError(StatusCodes.NOT_FOUND, "User not found as explorer");
 
   // check permission
   if (![match.requesterId, match.recipientId].includes(actingExplorer.id)) {
-    throw new customError(StatusCodes.FORBIDDEN, "Not allowed to modify this match");
+    throw new customError(
+      StatusCodes.FORBIDDEN,
+      "Not allowed to modify this match"
+    );
   }
 
   // If status transitions to ACCEPTED, you may want to update something on Trip or both explorers (example)
   const updatedMatch = await prisma.$transaction(async (tx) => {
-    const m = await tx.match.update({ where: { id: matchId }, data: { status: input.status } });
+    const m = await tx.match.update({
+      where: { id: matchId },
+      data: { status: input.status },
+    });
 
     // Example: if ACCEPTED, increment some count or update trip.matchCompleted if relevant
-    if (input.status === "ACCEPTED") {
+    if (input.status === MatchStatus.ACCEPTED) {
       // no direct link to a trip in your model — if you have logic to mark a Trip matchCompleted, add it here
     }
 
@@ -189,28 +266,54 @@ export const updateMatchStatus = async (matchId: string, actingUserId: string, i
   return updatedMatch;
 };
 
+const getSingleMatch = async (id: string) => {
+  const match = await prisma.match.findUnique({
+    where: { id },
+    include: { requester: true, recipient: true },
+  });
+
+  if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
+
+  return match;
+};
 
 /**
  * Get all matches (admin / public). Include explorer basics.
  */
-export const getAllMatches = async () => {
-  return prisma.match.findMany({
-    include: {
-      requester: {
-        select: { id: true, fullName: true, userId: true, profilePicture: true },
-      },
-      recipient: {
-        select: { id: true, fullName: true, userId: true, profilePicture: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
+const getAllMatches = async (query: Record<string, string>) => {
+  const builtQuery = prismaQueryBuilder(query, ["status"]);
+  // return prisma.match.findMany({
+  //   include: {
+  //     requester: {
+  //       select: { id: true, fullName: true, userId: true, profilePicture: true },
+  //     },
+  //     recipient: {
+  //       select: { id: true, fullName: true, userId: true, profilePicture: true },
+  //     },
+  //   },
+  //   orderBy: { createdAt: "desc" },
+  // });
+  const matches = await prisma.match.findMany({
+    ...builtQuery,
+    include: { requester: true, recipient: true },
   });
+
+  const total = await prisma.match.count({ where: builtQuery.where });
+
+  return {
+    data: matches,
+    meta: {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total,
+    },
+  };
 };
 
 /**
  * Get matches for the logged-in explorer
  */
-export const getMyMatches = async (userId: string) => {
+const getMyMatches = async (userId: string) => {
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
   if (!explorer) {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
@@ -221,8 +324,23 @@ export const getMyMatches = async (userId: string) => {
       OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
     },
     include: {
-      requester: { select: { id: true, fullName: true, userId: true, profilePicture: true } },
-      recipient: { select: { id: true, fullName: true, userId: true, profilePicture: true } },
+      requester: {
+        select: {
+          id: true,
+          fullName: true,
+          userId: true,
+          profilePicture: true,
+        },
+      },
+      recipient: {
+        select: {
+          id: true,
+          fullName: true,
+          userId: true,
+          profilePicture: true,
+        },
+      },
+      trip: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -233,7 +351,7 @@ export const getMyMatches = async (userId: string) => {
  * - Only requester or recipient can delete
  * - Transactionally delete match and touch explorers' updatedAt
  */
-export const deleteMatch = async (matchId: string, userId: string) => {
+const deleteMatch = async (matchId: string, userId: string) => {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: { requester: true, recipient: true },
@@ -248,8 +366,14 @@ export const deleteMatch = async (matchId: string, userId: string) => {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  if (actingExplorer.id !== match.requesterId && actingExplorer.id !== match.recipientId) {
-    throw new customError(StatusCodes.FORBIDDEN, "You are not allowed to delete this match");
+  if (
+    actingExplorer.id !== match.requesterId &&
+    actingExplorer.id !== match.recipientId
+  ) {
+    throw new customError(
+      StatusCodes.FORBIDDEN,
+      "You are not allowed to delete this match"
+    );
   }
 
   const deleted = await prisma.$transaction(async (tx) => {
@@ -276,4 +400,5 @@ export const matchService = {
   getAllMatches,
   getMyMatches,
   deleteMatch,
+  getSingleMatch,
 };

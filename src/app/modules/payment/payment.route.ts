@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { checkAuth } from "../../middlewares/checkAuth";
+import { Role } from "@prisma/client";
+import { PaymentController } from "./payment.controller";
+
+const router = Router();
+
+router.get("/all", checkAuth(Role.ADMIN), PaymentController.getAllPayment);
+router.get("/single/:id", checkAuth(Role.ADMIN), PaymentController.getSinglePayment);
+router.get("/my-pyment", checkAuth(Role.EXPLORER, Role.ADMIN), PaymentController.getMyPayments);
+
+export const paymentRouter = router;

@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/correctness/noUnusedImports: > */
 import { TripStatus } from "@prisma/client";
 
 export interface createTripInput {
@@ -7,14 +8,13 @@ export interface createTripInput {
   departureLocation: string;
   startDate: Date;
   endDate: Date;
-  description?: string; 
+  description?: string;
   budget: string;
-  requiredPerson:string;
+  image: string;
   journeyType: string[]; // ["Phising", "Mountain", "Campigning",]
   duration: string;
   Languages: string[]; // ["Bengali", "English"]
 }
-
 
 export interface UpdateTripInput {
   title?: string;
@@ -24,9 +24,8 @@ export interface UpdateTripInput {
   endDate?: Date | string;
   description?: string;
   budget?: string;
-  requiredPerson?: string;
+  image?: string;
   journeyType?: string[];
   duration?: string;
   Languages?: string[];
-  status?: TripStatus;
 }

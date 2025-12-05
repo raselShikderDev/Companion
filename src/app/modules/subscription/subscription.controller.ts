@@ -47,10 +47,46 @@ const sslcommerzWebhook = catchAsync(async (req: Request, res: Response) => {
   res.status(200).send("OK");
 });
 
+
+const getAllSubscription = catchAsync(async (req: Request, res: Response) => {
+  const data = await subscriptionService.getAllSubscription(req.query as Record<string, string>);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "All subscriptions fetched",
+    data:data.data,
+    meta:data.meta,
+  });
+});
+
+const getSingleSubscription = catchAsync(async (req: Request, res: Response) => {
+  const data = await subscriptionService.getSingleSubscription(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Subscription fetched",
+    data,
+  });
+});
+
+const getMySubscription = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id!;
+  const data = await subscriptionService.getMySubscription(userId);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Your subscription details",
+    data,
+  });
+});
+
 export const subscriptionController = {
   initiatePayment,
   sslcommerzWebhook,
   createSubscription,
+  getMySubscription,
+  getSingleSubscription,
+  getAllSubscription,
 };
 
 

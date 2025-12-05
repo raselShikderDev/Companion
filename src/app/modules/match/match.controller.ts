@@ -1,28 +1,41 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/correctness/noUnusedFunctionParameters: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { Request, Response, NextFunction } from "express";
 import catchAsync from "../../shared/catchAsync";
 import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../shared/sendResponse";
 import { matchService } from "./match.service";
-import { createMatchSchema, updateMatchStatusSchema } from "./match.validation";
+import customError from "../../shared/customError";
 
 /**
  * POST /matches
  * body: { recipientId }
  * user (req.user) must be set by auth middleware (userId present)
  */
-export const createMatch = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+ const createMatch = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+   const requesterUserId = req.user?.id;
+    if (!requesterUserId) {
+      throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
 
-  const parsed = createMatchSchema.parse(req.body);
-  const created = await matchService.createMatch(parsed, userId);
+    const { tripId } = req.body;
 
-  sendResponse(res, {
-    success: true,
-    statusCode: StatusCodes.CREATED,
-    message: "Match created successfully",
-    data: created,
-  });
+    if (!tripId) {
+      throw new customError(StatusCodes.BAD_REQUEST, " Trip required");
+    }
+
+    const match = await matchService.createMatch(
+      requesterUserId,
+      tripId
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.CREATED,
+      message: "Match request sent successfully",
+      data: match,
+    });
 });
 
 /**
@@ -31,17 +44,16 @@ export const createMatch = catchAsync(async (req: Request, res: Response, next: 
  */
 export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
   const matchId = req.params.id;
-  const parsed = updateMatchStatusSchema.parse(req.body);
 
-  const updated = await matchService.updateMatchStatus(matchId, parsed, userId);
+  const updated = await matchService.updateMatchStatus(matchId, userId, req.body);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: "Match status updated",
+    message: `Match status updated as ${updated.status}`,
     data: updated,
   });
 });
@@ -51,13 +63,20 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
  * returns all matches
  */
 export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
-  const matches = await matchService.getAllMatches();
+  const matches = await matchService.getAllMatches(req.query as Record<string, string>);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Matches fetched successfully",
-    data: matches,
+    data: matches.data,
+    meta: matches.meta,
   });
+});
+
+
+const getSingleMatch = catchAsync(async (req: Request, res: Response) => {
+  const data = await matchService.  getSingleMatch(req.params.id);
+  sendResponse(res, { success: true, statusCode: StatusCodes.OK, message: "Match fetched", data });
 });
 
 /**
@@ -66,7 +85,7 @@ export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
  */
 export const getMyMatches = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
   const matches = await matchService.getMyMatches(userId);
   sendResponse(res, {
@@ -102,4 +121,5 @@ export const matchController = {
   getAllMatches,
   getMyMatches,
   deleteMatch,
+  getSingleMatch,
 };

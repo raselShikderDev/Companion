@@ -53,6 +53,7 @@ export const checkAuth =
 
       if (!verifiedToekn)
         throw new customError(StatusCodes.UNAUTHORIZED, "Token is not valid");
+console.log({verifiedToekn, authRoles});
 
       if (!authRoles.includes(verifiedToekn.role))
         throw new customError(

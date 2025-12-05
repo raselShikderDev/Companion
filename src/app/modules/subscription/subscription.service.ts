@@ -8,6 +8,7 @@ import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
 import { envVars } from "../../configs/envVars";
 import { PLANS } from "./plan.config";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 /**
  * Helper: safe cast to Prisma.InputJsonValue
@@ -241,11 +242,77 @@ const verifyAndFinalizePayment = async (payload: any) => {
  */
 const handleSslCommerzCallback = verifyAndFinalizePayment;
 
+
+
+
+const getAllSubscription = async (query: Record<string, string>) => {
+  // return prisma.subscription.findMany({
+  //   include: { explorer: true },
+  //   orderBy: { createdAt: "desc" },
+  // });
+  const { where, take, skip, orderBy } = prismaQueryBuilder(query, ["planName", "status", "isActive", "endDate", "startDate"]);
+
+  const [data, total] = await prisma.$transaction([
+    prisma.subscription.findMany({
+      where,
+      skip,
+      take,
+      orderBy,
+      include: {
+        explorer: true,
+        payment: true,
+      },
+    }),
+    prisma.subscription.count({ where }),
+  ]);
+
+  return {
+    meta: {
+      total,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    },
+    data,
+  };
+};
+
+const getSingleSubscription = async (id: string) => {
+  const subscription = await prisma.subscription.findUnique({
+    where: { id },
+    include: { explorer: true },
+  });
+
+  if (!subscription)
+    throw new customError(StatusCodes.NOT_FOUND, "Subscription not found");
+
+  return subscription;
+};
+
+const getMySubscription = async (userId: string) => {
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+    include: { subscription: true },
+  });
+
+  if (!explorer)
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer profile not found");
+
+  return explorer.subscription ?? null;
+};
+
+
+
+
+
+
 export const subscriptionService = {
   initiatePayment,
   verifyAndFinalizePayment,
   createSubscription,
   handleSslCommerzCallback,
+  getMySubscription,
+  getSingleSubscription,
+  getAllSubscription,
 };
 
 

@@ -12,6 +12,8 @@ import { generateOtp } from "../../helper/generateOtp";
 import { envVars } from "../../configs/envVars";
 import { sendEmail } from "../../helper/sendEmail";
 import { maskEmail } from "../../helper/muskEmail";
+import { generateJwtToken, verifyJwtToken } from "../../helper/jwtHelper";
+import { JwtPayload, Secret } from "jsonwebtoken";
 
 
 const login = async ({
@@ -55,6 +57,52 @@ const login = async ({
   const userTokens = createUserToken(payload);
 
   return userTokens;
+};
+
+
+const refreshToken = async (token: string) => {
+    let decodedData;
+    try {
+        decodedData = await verifyJwtToken(token, envVars.JWT_REFRESH_SECRET as string) as JwtPayload;
+
+    }
+    catch (err) {
+        throw new Error("You are not authorized!")
+    }
+
+    const user = await prisma.user.findUniqueOrThrow({
+        where: {
+            email: decodedData?.email,
+            status: UserStatus.ACTIVE
+        }
+    });
+
+   const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
+  
+
+  // generating token by utils function
+  const accessToken = await generateJwtToken(
+    jwtPayload,
+    envVars.JWT_ACCESS_SECRET as string,
+    envVars.JWT_ACCESS_EXPIRES as string
+  );
+
+  // generating refresh token by utils function
+  const refreshToken = await generateJwtToken(
+    jwtPayload,
+    envVars.JWT_REFRESH_SECRET as string,
+    envVars.JWT_REFRESH_EXPIRES as string
+  );
+
+    return {
+        accessToken,
+        refreshToken,
+    };
+
 };
 
 
@@ -245,4 +293,5 @@ export const authService = {
   resetPassword,
   verifyOtp,
   forgotPassword,
+  refreshToken
 };

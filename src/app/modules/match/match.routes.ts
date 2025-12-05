@@ -29,8 +29,6 @@
 
 // export const matchRouter = router;
 
-
-
 /** biome-ignore-all lint/correctness/noUnusedImports: > */
 // biome-ignore assist/source/organizeImports: >
 import { Router } from "express";
@@ -40,15 +38,11 @@ import { Role } from "@prisma/client";
 import { createMatchSchema, updateMatchStatusSchema } from "./match.validation";
 import { matchController } from "./match.controller";
 
-
-
-
-
 const router = Router();
 
 // Create a match request
 router.post(
-  "/create-match",
+  "/create",
   validateRequest(createMatchSchema),
   checkAuth(Role.EXPLORER),
   matchController.createMatch
@@ -63,17 +57,16 @@ router.patch(
 );
 
 // Get all matches (admin or explorer if needed)
-router.get(
-  "/all",
-  matchController.getAllMatches
-);
+router.get("/all", matchController.getAllMatches);
 
 // Get logged-in user's matches
 router.get(
   "/my-matches",
- checkAuth(Role.ADMIN, Role.EXPLORER, Role.SUPER_ADMIN),
+  checkAuth(Role.EXPLORER),
   matchController.getMyMatches
 );
+
+router.get("/:id", checkAuth(Role.ADMIN), matchController.getSingleMatch);
 
 // Delete a match (only requester)
 router.delete(

@@ -18,7 +18,7 @@ export const createTripZodSchema = z.object({
   endDate: dateSchema,
   description: z.string().optional(),
   budget: z.string().min(1, "Budget is required"),
-  requiredPerson: z.string().min(1, "Required person is required"),
+  image: z.url( "Valid url person is required"),
   journeyType: z.array(z.string().min(1)).nonempty("At least one journey type is required"),
   duration: z.string().min(1, "Duration is required"),
   Languages: z.array(z.string().min(1)).nonempty("At least one language is required"),
@@ -56,9 +56,13 @@ export const updateTripSchema = z.object({
   endDate: z.preprocess((arg) => (arg ? new Date(arg as string) : undefined), z.date().optional()),
   description: z.string().optional(),
   budget: z.string().optional(),
-  requiredPerson: z.string().optional(),
+  image: z.url().optional(),
   journeyType: z.array(z.string()).optional(),
   duration: z.string().optional(),
   Languages: z.array(z.string()).optional(),
-  status: z.nativeEnum(TripStatus).optional(),
+  status: z.enum(TripStatus).optional(),
+});
+
+export const updateTripStausSchema = z.object({
+  status: z.enum(TripStatus)
 });

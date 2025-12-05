@@ -2,11 +2,12 @@
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
-import { ICreateAdmin, ICreateExplorer } from "./user.interface";
+import { ICreateAdmin, ICreateExplorer, UpdateProfilePictureInput, UpdateUserProfileInput } from "./user.interface";
 import { envVars } from "../../configs/envVars";
 import { Gender, Role } from "@prisma/client";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 
 
@@ -67,7 +68,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
 // }
 
 // Create admin
-export const createAdmin = async (payload: ICreateAdmin) => {
+ const createAdmin = async (payload: ICreateAdmin) => {
   const { email } = payload;
   console.log({ payload });
 
@@ -125,10 +126,155 @@ export const createAdmin = async (payload: ICreateAdmin) => {
 // }
 
 
+const updateProfilePicture = async (
+  userId: string,
+  data: UpdateProfilePictureInput
+)  => {
+
+   const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { explorers: true, admins: true },
+  });
+
+  if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
+
+  // Identify target model based on role
+  const target =
+    user.role === "ADMIN"
+      ? user.admins[0]
+      : user.explorers[0];
+
+  if (!target)
+    throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
+
+  // Update inside transaction
+  const updated = await prisma.$transaction(async (tx) => {
+    if (user.role === "ADMIN") {
+      return await tx.admin.update({
+        where: { id: target.id },
+        data: { profilePicture: data.profilePicture },
+      });
+    } else {
+      return await tx.explorer.update({
+        where: { id: target.id },
+        data: { profilePicture: data.profilePicture },
+      });
+    }
+  });
+
+  return updated;
+};
+
+const updateUserProfile = async (
+  userId: string,
+  data: UpdateUserProfileInput
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { explorers: true, admins: true },
+  });
+
+  if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
+
+  // Role based profile
+  const target =
+    user.role === "ADMIN"
+      ? user.admins[0]
+      : user.explorers[0];
+
+  if (!target)
+    throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
+
+  // Never update email or password here  
+  const allowedData = { ...data };
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (user.role === "ADMIN") {
+      return tx.admin.update({
+        where: { id: target.id },
+        data: allowedData,
+      });
+    } else {
+      return tx.explorer.update({
+        where: { id: target.id },
+        data: allowedData,
+      });
+    }
+  });
+
+  return updated;
+};
+
+const getAllUsers = async (query:Record<string, string>) => {
+   const builtQuery = prismaQueryBuilder(query, [
+    "email",
+    "fullName",
+    "phone",
+  ]);
+  // const users = await prisma.user.findMany({
+  //   include: {
+  //     explorers: true,
+  //     admins: true,
+  //   },
+  // });
+
+    const users = await prisma.user.findMany(builtQuery);
+
+  const total = await prisma.user.count({
+    where: builtQuery.where,
+  });
+
+  return {
+    meta: {
+    page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total,
+    },
+    data:  users.map(safeUser)
+  };
+};
+
+const getSingleUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      explorers: true,
+      admins: true,
+    },
+  });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  return safeUser(user);
+};
+
+const getMe = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      explorers: true,
+      admins: true,
+    },
+  });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  return user;
+};
+
 
 export const userService = {
   createExplorer,
   createAdmin,
+  updateProfilePicture,
+  updateUserProfile,
+  getAllUsers,
+  getSingleUser,
+  getMe,
 };
 
 

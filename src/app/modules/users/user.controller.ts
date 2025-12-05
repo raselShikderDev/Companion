@@ -43,20 +43,87 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
     })
 })
 
+ const updateProfilePicture = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
+    const updated = await userService.updateProfilePicture(
+      userId,
+      req.body
+    );
 
-const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     sendResponse(res, {
-        success: true,
-        statusCode: 500,
-        message: "All users",
-        data: null
-    })
-})
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Profile picture updated successfully",
+      data: updated,
+    });
+  }
+);
+
+export const updateUserProfile = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) throw new customError(StatusCodes.UNAUTHORIZED,"Unauthorized" );
+
+    const updated = await userService.updateUserProfile(userId, req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Profile updated successfully",
+      data: updated,
+    });
+  }
+);
+
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await userService.getAllUsers(req.query as Record<string, string>);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "All users fetched successfully",
+    data: users.data,
+    meta: users.meta,
+  });
+});
+
+const getSingleUser = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const user = await userService.getSingleUser(id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User fetched successfully",
+    data: user,
+  });
+});
+
+const getMe = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id as string;
+
+  const user = await userService.getSingleUser(userId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Profile fetched successfully",
+    data: user,
+  });
+});
+
 
 
 export const userController = {
-    getAllUsers,
     createExplorer,
-    createAdmin
+    createAdmin,
+    updateUserProfile,
+    updateProfilePicture,
+    getAllUsers,
+  getSingleUser,
+  getMe,
 }

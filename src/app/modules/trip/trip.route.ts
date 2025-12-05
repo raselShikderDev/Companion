@@ -5,7 +5,7 @@ import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
 import { Router } from "express";
 import { TripController } from "./trip.controller";
-import { createTripZodSchema } from "./trip.zodSchema";
+import { createTripZodSchema, updateTripStausSchema } from "./trip.zodSchema";
 
 const router = Router();
 
@@ -26,6 +26,13 @@ router.get("/my-list", checkAuth(Role.EXPLORER), TripController.getMyTrips);
 // Get single trip
 router.get("/:id", TripController.getTripById);
 
+router.patch(
+  "/complete/:id",
+  checkAuth(Role.EXPLORER),
+  validateRequest(updateTripStausSchema),
+  TripController.updateTripStatus
+);
+
 // Update trip
 router.patch("/:id", checkAuth(Role.EXPLORER), TripController.updateTrip);
 
@@ -33,8 +40,6 @@ router.patch("/:id", checkAuth(Role.EXPLORER), TripController.updateTrip);
 router.delete("/:id", checkAuth(Role.EXPLORER), TripController.deleteTrip);
 
 export const tripRouter = router;
-
-
 
 // /** biome-ignore-all lint/correctness/noUnusedImports: > */
 // // biome-ignore assist/source/organizeImports: >
@@ -47,7 +52,6 @@ export const tripRouter = router;
 
 // const router = Router();
 
-
 // // CREATE TRIP
 // router.post(
 //   "/create-trip",
@@ -55,7 +59,6 @@ export const tripRouter = router;
 //   checkAuth(Role.EXPLORER),
 //   TripController.createTrip
 // );
-
 
 // // UPDATE TRIP
 // router.patch(
@@ -65,13 +68,11 @@ export const tripRouter = router;
 //   TripController.updateTrip
 // );
 
-
 // // GET SINGLE TRIP
 // router.get(
 //   "/trip/:id",
 //   TripController.getTripById
 // );
-
 
 // // GET ALL TRIPS (public or explorer?)
 // // You choose — I assume Explorer only
@@ -81,14 +82,12 @@ export const tripRouter = router;
 //   TripController.getAllTrips
 // );
 
-
 // // GET LOGGED-IN USER TRIPS
 // router.get(
 //   "/my-trips",
 //   checkAuth(Role.EXPLORER),
 //   TripController.getMyTrips
 // );
-
 
 // // DELETE TRIP
 // router.delete(
@@ -98,5 +97,3 @@ export const tripRouter = router;
 // );
 
 // export const tripRouter = router;
-
-

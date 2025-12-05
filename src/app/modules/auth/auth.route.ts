@@ -9,6 +9,9 @@ const router = Router();
 router.post("/login", validateRequest(loginZodSchema), authController.login);
 router.post("/logout", authController.logOut);
 
+router.post("/refresh-token", authController.refreshToken);
+
+
 router.post("/forgot-password", validateRequest(forgotPasswordSchema), authController.forgotPassword);
 router.post("/verify-otp", validateRequest(verifyOtpSchema), authController.verifyOTP);
 router.post("/reset-password", validateRequest(resetPasswordSchema), authController.resetPassword);
