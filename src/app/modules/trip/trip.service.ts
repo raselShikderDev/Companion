@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { createTripInput, UpdateTripInput } from "./trip.interface";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 
 export const createTrip = async (data: createTripInput, userId: string) => {
@@ -128,16 +129,35 @@ export const getTripById = async (tripId: string) => {
   return trip;
 };
 
-export const getAllTrips = async () => {
-  return prisma.trip.findMany({
-    include: { creator: true },
-    orderBy: { createdAt: "desc" },
+export const getAllTrips = async (query: Record<string, string>) => {
+  // return prisma.trip.findMany({
+  //   include: { creator: true },
+  //   orderBy: { createdAt: "desc" },
+  // });
+  const builtQuery = prismaQueryBuilder(query, ["title", "destination"]);
+
+  const trips = await prisma.trip.findMany({
+    ...builtQuery,
+    include:{
+      creator:true
+    }
   });
+  const total = await prisma.trip.count({ where: builtQuery.where });
+
+  return {
+    data: trips,
+    meta: {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total
+    }
+  };
+
 };
 
 export const getMyTrips = async (userId: string) => {
-  console.log({userId});
-  
+  console.log({ userId });
+
   return prisma.trip.findMany({
     where: { creator: { userId } },
     include: { creator: true },

@@ -50,12 +50,13 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
  * returns all matches
  */
 export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
-  const matches = await matchService.getAllMatches();
+  const matches = await matchService.getAllMatches(req.query as Record<string, string>);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Matches fetched successfully",
-    data: matches,
+    data: matches.data,
+    meta: matches.meta,
   });
 });
 

@@ -56,15 +56,15 @@ enum SubscriptionPlan {
 }
 
 model User {
-    id        String     @id @default(uuid())
-    email     String     @unique
-    password  String
-    role      Role       @default(EXPLORER)
-    status    UserStatus @default(ACTIVE)
-    isDeleted Boolean    @default(false)
+    id             String     @id @default(uuid())
+    email          String     @unique
+    password       String
+    role           Role       @default(EXPLORER)
+    status         UserStatus @default(ACTIVE)
+    isDeleted      Boolean    @default(false)
     emailConfirmed Boolean    @default(false)
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
+    createdAt      DateTime   @default(now())
+    updatedAt      DateTime   @updatedAt
 
     admins    Admin[]
     explorers Explorer[]
@@ -147,18 +147,18 @@ model Match {
 }
 
 model Subscription {
-    id                   String           @id @default(uuid())
-    explorerId           String           @unique
-    planName             SubscriptionPlan @default(FREE)
-    stripeCustomerId     String?          @unique
-    stripeSubscriptionId String?          @unique
-    startDate            DateTime         @default(now())
-    endDate              DateTime
-    isActive             Boolean          @default(true)
-    createdAt            DateTime         @default(now())
-    updatedAt            DateTime         @updatedAt
+    id         String           @id @default(uuid())
+    explorerId String           @unique
+    planName   SubscriptionPlan @default(FREE)
+    paymentId  String?          @unique
+    startDate  DateTime         @default(now())
+    endDate    DateTime
+    isActive   Boolean          @default(true)
+    createdAt  DateTime         @default(now())
+    updatedAt  DateTime         @updatedAt
 
     explorer Explorer @relation(fields: [explorerId], references: [id])
+    payment  Payment? @relation(fields: [paymentId], references: [id])
 }
 
 model Payment {
@@ -174,5 +174,6 @@ model Payment {
     createdAt     DateTime         @default(now())
     updatedAt     DateTime         @updatedAt
 
-    explorer Explorer @relation(fields: [explorerId], references: [id])
+    explorer     Explorer      @relation(fields: [explorerId], references: [id])
+    subscription Subscription?
 }

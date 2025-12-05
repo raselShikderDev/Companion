@@ -4,6 +4,7 @@ import customError from "../../shared/customError";
 import { CreateMatchInput, UpdateMatchStatusInput } from "./match.interface";
 import { MatchStatus, SubscriptionPlan } from "@prisma/client";
 import { PLANS } from "../subscription/plan.config";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 
 // export const createMatch = async (data: CreateMatchInput, userId: string) => {
@@ -205,18 +206,34 @@ const getSingleMatch = async (id: string) => {
 /**
  * Get all matches (admin / public). Include explorer basics.
  */
-const getAllMatches = async () => {
-  return prisma.match.findMany({
-    include: {
-      requester: {
-        select: { id: true, fullName: true, userId: true, profilePicture: true },
-      },
-      recipient: {
-        select: { id: true, fullName: true, userId: true, profilePicture: true },
-      },
-    },
-    orderBy: { createdAt: "desc" },
+const getAllMatches = async (query: Record<string, string>) => {
+  const builtQuery = prismaQueryBuilder(query, ["status"]);
+  // return prisma.match.findMany({
+  //   include: {
+  //     requester: {
+  //       select: { id: true, fullName: true, userId: true, profilePicture: true },
+  //     },
+  //     recipient: {
+  //       select: { id: true, fullName: true, userId: true, profilePicture: true },
+  //     },
+  //   },
+  //   orderBy: { createdAt: "desc" },
+  // });
+  const matches = await prisma.match.findMany({
+    ...builtQuery,
+    include: { requester: true, recipient: true },
   });
+
+  const total = await prisma.match.count({ where: builtQuery.where });
+
+  return {
+    data: matches,
+    meta: {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total
+    }
+  };
 };
 
 /**

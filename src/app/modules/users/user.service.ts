@@ -7,6 +7,7 @@ import { envVars } from "../../configs/envVars";
 import { Gender, Role } from "@prisma/client";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 
 
@@ -204,15 +205,33 @@ const updateUserProfile = async (
   return updated;
 };
 
-const getAllUsers = async () => {
-  const users = await prisma.user.findMany({
-    include: {
-      explorers: true,
-      admins: true,
-    },
+const getAllUsers = async (query:Record<string, string>) => {
+   const builtQuery = prismaQueryBuilder(query, [
+    "email",
+    "fullName",
+    "phone",
+  ]);
+  // const users = await prisma.user.findMany({
+  //   include: {
+  //     explorers: true,
+  //     admins: true,
+  //   },
+  // });
+
+    const users = await prisma.user.findMany(builtQuery);
+
+  const total = await prisma.user.count({
+    where: builtQuery.where,
   });
 
-  return users.map(safeUser);
+  return {
+    meta: {
+    page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total,
+    },
+    data:  users.map(safeUser)
+  };
 };
 
 const getSingleUser = async (userId: string) => {

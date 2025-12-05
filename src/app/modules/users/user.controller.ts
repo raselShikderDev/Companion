@@ -79,13 +79,14 @@ export const updateUserProfile = catchAsync(
 );
 
 const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const users = await userService.getAllUsers();
+  const users = await userService.getAllUsers(req.query as Record<string, string>);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "All users fetched successfully",
-    data: users,
+    data: users.data,
+    meta: users.meta,
   });
 });
 

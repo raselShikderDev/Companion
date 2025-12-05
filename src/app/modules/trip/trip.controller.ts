@@ -65,14 +65,15 @@ export const getTripById = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Get all trips
-export const getAllTrips = catchAsync(async (_req: Request, res: Response) => {
-  const trips = await TripService.getAllTrips();
+export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
+  const trips = await TripService.getAllTrips(req.query as Record<string, string>);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "All trips fetched successfully",
-    data: trips,
+    data: trips.data,
+    meta:trips.meta
   });
 });
 

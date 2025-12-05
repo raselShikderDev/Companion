@@ -1,15 +1,38 @@
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
+import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
-const getAll = async () => {
-  return prisma.payment.findMany({
-    include: { explorer: true },
-    orderBy: { createdAt: "desc" },
+const getAllPayment = async (query: Record<string, string>) => {
+  // return prisma.payment.findMany({
+  //   include: { explorer: true },
+  //   orderBy: { createdAt: "desc" },
+  // });
+  const { where, take, skip, orderBy } = prismaQueryBuilder(query, ["transactionId"]);
+
+  const payments = await prisma.payment.findMany({
+    where,
+    skip,
+    take,
+    orderBy,
+    include: {
+      subscription: true,
+    }
   });
+  const total = await prisma.payment.count({ where });
+
+  return {
+    data: payments,
+    meta: {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      total
+    }
+  };
+
 };
 
-const getSingle = async (id: string) => {
+const getSinglePayment = async (id: string) => {
   const payment = await prisma.payment.findUnique({
     where: { id },
     include: { explorer: true },
@@ -37,7 +60,7 @@ const getMyPayments = async (userId: string) => {
 };
 
 export const PaymentService = {
-  getAll,
-  getSingle,
+  getAllPayment,
+  getSinglePayment,
   getMyPayments,
 };

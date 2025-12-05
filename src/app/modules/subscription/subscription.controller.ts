@@ -49,12 +49,13 @@ const sslcommerzWebhook = catchAsync(async (req: Request, res: Response) => {
 
 
 const getAllSubscription = catchAsync(async (req: Request, res: Response) => {
-  const data = await subscriptionService.getAllSubscription();
+  const data = await subscriptionService.getAllSubscription(req.query as Record<string, string>);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "All subscriptions fetched",
-    data,
+    data:data.data,
+    meta:data.meta,
   });
 });
 
