@@ -55,6 +55,12 @@ enum SubscriptionPlan {
     PREMIUM
 }
 
+enum ReviewStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
 model User {
     id             String     @id @default(uuid())
     email          String     @unique
@@ -108,6 +114,7 @@ model Explorer {
 
     user     User      @relation(fields: [userId], references: [id])
     payments Payment[]
+    reviews  Review[]
 }
 
 model Trip {
@@ -142,6 +149,7 @@ model Match {
 
     requester Explorer @relation("Requester", fields: [requesterId], references: [id])
     recipient Explorer @relation("Recipient", fields: [recipientId], references: [id])
+    reviews   Review[]
 
     @@unique([requesterId, recipientId])
 }
@@ -176,4 +184,20 @@ model Payment {
 
     explorer     Explorer      @relation(fields: [explorerId], references: [id])
     subscription Subscription?
+}
+
+model Review {
+    id         String       @id @default(uuid())
+    matchId    String
+    reviewerId String // Explorer who gives the review
+    rating     Int
+    comment    String?
+    status     ReviewStatus @default(PENDING)
+    createdAt  DateTime     @default(now())
+    updatedAt  DateTime     @updatedAt
+
+    match    Match    @relation(fields: [matchId], references: [id])
+    reviewer Explorer @relation(fields: [reviewerId], references: [id])
+
+    @@unique([matchId, reviewerId]) // One review per person per match
 }
