@@ -1,11 +1,16 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import catchAsync from "../../shared/catchAsync";
 import { Request, Response } from "express";
 import { ReviewService } from "./review.service";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 
- const createReview = catchAsync(async (req: Request, res: Response) => {
+const createReview = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id as string;
+  console.log({
+    "req.user": req.user,
+  });
 
   const review = await ReviewService.createReview(userId, req.body);
 
@@ -17,8 +22,10 @@ import { StatusCodes } from "http-status-codes";
   });
 });
 
- const getAllReviews = catchAsync(async (req: Request, res: Response) => {
-  const reviews = await ReviewService.getAllReviews(req.query as Record<string, string>);
+const getAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const reviews = await ReviewService.getAllReviews(
+    req.query as Record<string, string>
+  );
 
   sendResponse(res, {
     success: true,
@@ -29,17 +36,21 @@ import { StatusCodes } from "http-status-codes";
 });
 
 const getMyReviews = catchAsync(async (req, res) => {
-  const reviews = await ReviewService.getMyReviews(req.user?.id!, req.query as Record<string, string>);
+  const reviews = await ReviewService.getMyReviews(
+    req.user?.id as string,
+    req.query as Record<string, string>
+  );
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Your reviews fetched",
-    data: reviews
+    data: reviews.data,
+    meta: reviews.meta,
   });
 });
 
- const getSingleReview = catchAsync(async (req: Request, res: Response) => {
+const getSingleReview = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
 
   const review = await ReviewService.getSingleReview(id);
@@ -52,7 +63,7 @@ const getMyReviews = catchAsync(async (req, res) => {
   });
 });
 
- const updateReview = catchAsync(async (req: Request, res: Response) => {
+const updateReview = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.id as string;
 
@@ -66,7 +77,7 @@ const getMyReviews = catchAsync(async (req, res) => {
   });
 });
 
- const deleteReview = catchAsync(async (req: Request, res: Response) => {
+const deleteReview = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.id as string;
 
@@ -90,7 +101,7 @@ const adminUpdateStatus = catchAsync(async (req, res) => {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Review status updated",
-    data: updated
+    data: updated,
   });
 });
 

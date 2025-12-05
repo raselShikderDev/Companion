@@ -1,28 +1,41 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/correctness/noUnusedFunctionParameters: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { Request, Response, NextFunction } from "express";
 import catchAsync from "../../shared/catchAsync";
 import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../shared/sendResponse";
 import { matchService } from "./match.service";
-import { createMatchSchema, updateMatchStatusSchema } from "./match.validation";
+import customError from "../../shared/customError";
 
 /**
  * POST /matches
  * body: { recipientId }
  * user (req.user) must be set by auth middleware (userId present)
  */
-export const createMatch = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
+ const createMatch = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+   const requesterUserId = req.user?.id;
+    if (!requesterUserId) {
+      throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
 
- 
-  const created = await matchService.createMatch(userId, req.body);
+    const { tripId } = req.body;
 
-  sendResponse(res, {
-    success: true,
-    statusCode: StatusCodes.CREATED,
-    message: "Match created successfully",
-    data: created,
-  });
+    if (!tripId) {
+      throw new customError(StatusCodes.BAD_REQUEST, " Trip required");
+    }
+
+    const match = await matchService.createMatch(
+      requesterUserId,
+      tripId
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.CREATED,
+      message: "Match request sent successfully",
+      data: match,
+    });
 });
 
 /**

@@ -120,6 +120,7 @@ model Explorer {
 model Trip {
     id                String     @id @default(uuid())
     title             String
+    image             String?
     creatorId         String
     destination       String
     departureLocation String
@@ -128,7 +129,6 @@ model Trip {
     description       String?    @db.Text
     budget            String
     journeyType       String[]
-    requiredPerson    String
     matchCompleted    Boolean    @default(false)
     duration          String
     Languages         String[]
@@ -137,18 +137,21 @@ model Trip {
     updatedAt         DateTime   @updatedAt
 
     creator Explorer @relation(fields: [creatorId], references: [id])
+    matches Match[]
 }
 
 model Match {
     id          String      @id @default(uuid())
     requesterId String
     recipientId String
+    tripId      String
     status      MatchStatus @default(PENDING)
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
 
     requester Explorer @relation("Requester", fields: [requesterId], references: [id])
     recipient Explorer @relation("Recipient", fields: [recipientId], references: [id])
+    trip      Trip     @relation(fields: [tripId], references: [id])
     reviews   Review[]
 
     @@unique([requesterId, recipientId])

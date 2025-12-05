@@ -48,7 +48,7 @@ const router = Router();
 
 // Create a match request
 router.post(
-  "/create-match",
+  "/create",
   validateRequest(createMatchSchema),
   checkAuth(Role.EXPLORER),
   matchController.createMatch

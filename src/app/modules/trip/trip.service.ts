@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
@@ -46,7 +47,7 @@ export const createTrip = async (data: createTripInput, userId: string) => {
         endDate: new Date(data.endDate),
         description: data.description,
         budget: data.budget,
-        requiredPerson: data.requiredPerson,
+        image: data.image,
         journeyType: data.journeyType,
         duration: data.duration,
         Languages: data.Languages,
@@ -134,7 +135,7 @@ export const getAllTrips = async (query: Record<string, string>) => {
   //   include: { creator: true },
   //   orderBy: { createdAt: "desc" },
   // });
-  const builtQuery = prismaQueryBuilder(query, ["title", "destination"]);
+  const builtQuery = prismaQueryBuilder(query, ["title", "destination", "matchCompleted"]);
 
   const trips = await prisma.trip.findMany({
     ...builtQuery,

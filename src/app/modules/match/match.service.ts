@@ -1,9 +1,10 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
-import { CreateMatchInput, UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus, SubscriptionPlan } from "@prisma/client";
-import { PLANS } from "../subscription/plan.config";
+import { UpdateMatchStatusInput } from "./match.interface";
+import { MatchStatus } from "@prisma/client";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 
@@ -70,44 +71,106 @@ import { prismaQueryBuilder } from "../../shared/queryBuilder";
 //   return created;
 // };
 
-const createMatch = async (requesterUserId: string, input: CreateMatchInput) => {
-  // Find requester explorer
-  const requester = await prisma.explorer.findFirst({ where: { userId: requesterUserId }, include: { subscription: true, outgoingMatches: true, incomingMatches: true } });
-  if (!requester) throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
+const createMatch = async (
+  requesterUserId: string,
+  tripId: string
+) => {
 
-  // Determine allowed matches for requester's plan
-  const planName = requester.subscription?.planName || SubscriptionPlan.FREE;
-  const allowedMatches = PLANS[planName].allowedMatches;
-  const totalMatches = (requester.outgoingMatches?.length || 0) + (requester.incomingMatches?.length || 0);
+  // 1. Get Trip + Creator
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: { creator: true }
+  });
 
-  if (totalMatches >= allowedMatches) {
-    throw new customError(StatusCodes.FORBIDDEN, "Match limit reached. Please upgrade subscription.");
+  if (!trip) {
+    throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   }
 
-  // Ensure recipient exists
-  const recipient = await prisma.explorer.findUnique({ where: { id: input.recipientId } });
-  if (!recipient) throw new customError(StatusCodes.NOT_FOUND, "Recipient not found");
+  // 2. Get Requester Explorer
+  const requester = await prisma.explorer.findFirst({
+    where: { userId: requesterUserId },
+  });
 
-  // Use transaction to create match and optionally update some counters
+  if (!requester) {
+    throw new customError(StatusCodes.NOT_FOUND, "Requester not found");
+  }
+
+  // 3. Prevent Self Match
+  if (requester.id === trip.creatorId) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "You cannot match with your own trip"
+    );
+  }
+
+  // 4. Check Recipient (Trip Creator)
+  const recipient = await prisma.explorer.findUnique({
+    where: { id: trip.creatorId },
+  });
+
+  if (!recipient) {
+    throw new customError(StatusCodes.NOT_FOUND, "Recipient not found");
+  }
+
+  // 5. Prevent match on completed trip
+  if (trip.matchCompleted) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Trip matching is already closed"
+    );
+  }
+
+  // 6. Prevent duplicate match in BOTH directions
+  const existingMatch = await prisma.match.findFirst({
+    where: {
+      tripId,
+      OR: [
+        {
+          requesterId: requester.id,
+          recipientId: trip.creatorId,
+        },
+        {
+          requesterId: trip.creatorId,
+          recipientId: requester.id,
+        },
+      ],
+    },
+  });
+
+  if (existingMatch) {
+    throw new customError(StatusCodes.CONFLICT, "Match already exists for this trip");
+  }
+
+  // ✅ 7. Create match safely inside transaction
   const match = await prisma.$transaction(async (tx) => {
     const newMatch = await tx.match.create({
       data: {
         requesterId: requester.id,
-        recipientId: recipient.id,
-        status: "PENDING",
+        recipientId: trip.creatorId,
+        tripId,
+        status: MatchStatus.PENDING,
+      },
+      include: {
+        requester: true,
+        recipient: true,
+        trip: true,
       },
     });
 
-    // Optionally update both explorers updatedAt (or counts) atomically
-    await tx.explorer.update({ where: { id: requester.id }, data: { updatedAt: new Date() } });
-    await tx.explorer.update({ where: { id: recipient.id }, data: { updatedAt: new Date() } });
+    await tx.trip.update({
+      where:{
+        id:tripId
+      },
+      data:{
+        matchCompleted:true,
+      }
+    })
 
     return newMatch;
   });
 
   return match;
 };
-
 
 /**
  * Update match status
@@ -180,7 +243,7 @@ const updateMatchStatus = async (matchId: string, actingUserId: string, input: U
     const m = await tx.match.update({ where: { id: matchId }, data: { status: input.status } });
 
     // Example: if ACCEPTED, increment some count or update trip.matchCompleted if relevant
-    if (input.status === "ACCEPTED") {
+    if (input.status === MatchStatus.ACCEPTED) {
       // no direct link to a trip in your model — if you have logic to mark a Trip matchCompleted, add it here
     }
 
