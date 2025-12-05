@@ -5,7 +5,7 @@ import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { CreateReviewInput, UpdateReviewInput } from "./review.interface";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
-import { MatchStatus, ReviewStatus } from "@prisma/client";
+import { MatchStatus, ReviewStatus, TripStatus } from "@prisma/client";
 
 const createReview = async (userId: string, data: CreateReviewInput) => {
   const { matchId, rating, comment } = data;
@@ -21,7 +21,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
 
   // ✅ 2. Get Match + Trip
   const match = await prisma.match.findUnique({
-    where: { id: matchId },
+    where: { id: matchId, status:MatchStatus.ACCEPTED},
     include: { trip: true },
   });
 
@@ -55,7 +55,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
   }
 
   // ✅ 5. Trip must be completed
-  if (!match.trip.matchCompleted) {
+  if (match.trip.status !== TripStatus.COMPLETED) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
       "Review is allowed only after trip completion"
@@ -82,7 +82,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     return await tx.review.create({
       data: {
         matchId,
-        reviewerId: explorer.id, // ✅ FIXED
+        reviewerId: explorer.id, 
         rating,
         comment,
         status: ReviewStatus.APPROVED,
@@ -170,6 +170,16 @@ const updateReview = async (
   userId: string,
   data: UpdateReviewInput
 ) => {
+  // ✅ 1. Convert USER → EXPLORER
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
+
+  if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  // ✅ 2. Get review
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
   });
@@ -178,13 +188,21 @@ const updateReview = async (
     throw new customError(StatusCodes.NOT_FOUND, "Review not found");
   }
 
-  if (review.reviewerId !== userId) {
+  console.log({
+    userId,
+    explorerId: explorer.id,
+    reviewReviewerId: review.reviewerId,
+  });
+
+  // ✅ 3. TRUE OWNERSHIP CHECK
+  if (review.reviewerId !== explorer.id) {
     throw new customError(
       StatusCodes.FORBIDDEN,
       "You cannot update this review"
     );
   }
 
+  // ✅ 4. Update review
   const updated = await prisma.review.update({
     where: { id: reviewId },
     data,
@@ -192,6 +210,7 @@ const updateReview = async (
 
   return updated;
 };
+
 
 const deleteReview = async (reviewId: string, userId: string) => {
   const review = await prisma.review.findUnique({

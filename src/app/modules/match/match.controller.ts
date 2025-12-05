@@ -53,7 +53,7 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: "Match status updated",
+    message: `Match status updated as ${updated.status}`,
     data: updated,
   });
 });
