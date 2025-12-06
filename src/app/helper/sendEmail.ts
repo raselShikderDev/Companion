@@ -1,3 +1,6 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: <> */
+/** biome-ignore-all assist/source/organizeImports: > */
+/** biome-ignore-all lint/style/useNodejsImportProtocol: <> */
 
 import nodemailer from "nodemailer";
 import ejs from "ejs";

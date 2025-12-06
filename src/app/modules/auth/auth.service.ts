@@ -1,4 +1,7 @@
 /** biome-ignore-all assist/source/organizeImports: > */
+/** biome-ignore-all lint/style/useNodejsImportProtocol: > */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
+/** biome-ignore-all lint/style/useImportType: > */
 import bcrypt from "bcrypt";
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
@@ -13,7 +16,7 @@ import { envVars } from "../../configs/envVars";
 import { sendEmail } from "../../helper/sendEmail";
 import { maskEmail } from "../../helper/muskEmail";
 import { generateJwtToken, verifyJwtToken } from "../../helper/jwtHelper";
-import { JwtPayload, Secret } from "jsonwebtoken";
+import { JwtPayload } from "jsonwebtoken";
 
 
 const login = async ({
@@ -61,12 +64,14 @@ const login = async ({
 
 
 const refreshToken = async (token: string) => {
-    let decodedData;
+    let decodedData:JwtPayload | null;
     try {
         decodedData = await verifyJwtToken(token, envVars.JWT_REFRESH_SECRET as string) as JwtPayload;
 
     }
     catch (err) {
+      console.log(err);
+      
         throw new Error("You are not authorized!")
     }
 
@@ -148,17 +153,8 @@ const forgotPassword = async (input: ForgotPasswordInput) => {
     await redisClient.expire(rateKey, 60 * 60); // 1 hour
 
     // Send email with OTP (secure: don't include extra info)
-    const resetVerifyUrl = `${envVars.FRONEND_URL}/auth/verify-otp`; // frontend route if you have one
-    const subject = "Your password reset OTP";
-    const html = `
-      <p>Hello,</p>
-      <p>Use the following One-Time PIN (OTP) to verify your identity and reset your password. It expires in ${Math.floor(
-        OTP_TTL_SECONDS / 60
-      )} minutes.</p>
-      <h2>${otp}</h2>
-      <p>If you didn't request this, ignore this email.</p>
-      <p>Or visit: <a href="${resetVerifyUrl}">${resetVerifyUrl}</a></p>
-    `;
+    // const resetVerifyUrl = `${envVars.FRONEND_URL}/auth/verify-otp`; // frontend route if you have one
+
 
     await sendEmail({
             to: email,
@@ -217,20 +213,7 @@ const forgotPassword = async (input: ForgotPasswordInput) => {
     if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
     await redisClient.setEx(resetKey, RESET_TOKEN_TTL_SECONDS, JSON.stringify({ userId: user.id }));
-
-    // send email with reset link as an extra safety (not required to return token)
-    const resetUrl = `${envVars.FRONEND_URL}/auth/reset-password?token=${resetToken}`;
-
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: "Password reset requested",
-        templateName: "", // using raw HTML fallback
-        templateData: {},
-      });
-    } catch {
-      // ignore
-    }
+    
 
     return { ok: true, resetToken, expiresIn: RESET_TOKEN_TTL_SECONDS };
   }
@@ -269,13 +252,13 @@ const forgotPassword = async (input: ForgotPasswordInput) => {
     await redisClient.del(resetKey);
 
     // Send confirmation email
-    const html = `<p>Your password has been successfully reset. If you did not perform this action, contact support immediately.</p>`;
+    // const html = `<p>Your password has been successfully reset. If you did not perform this action, contact support immediately.</p>`;
     try {
       // Attempt to send with sendEmail wrapper, fallback handled by wrapper
       await sendEmail({
         to: user.email,
         subject: "Your password was changed",
-        templateName: "",
+        templateName: "reset-success",
         templateData: {},
       });
     } catch {
