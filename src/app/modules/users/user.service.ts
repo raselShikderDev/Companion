@@ -14,6 +14,7 @@ import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
+console.log({payload});
 
   const { email } = payload
 
@@ -30,7 +31,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
   return prisma.$transaction(async (tx:any) => {
     const hashedPassword = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND as string));
 
-    // 1️⃣ Create user
+    //  Create user
     const user = await tx.user.create({
       data: {
         email: payload.email,
@@ -40,14 +41,14 @@ const createExplorer = async (payload: ICreateExplorer) => {
     });
     console.log({ user });
 
-    // 2️⃣ Create explorer profile
+    //  Create explorer profile
     const explorer = await tx.explorer.create({
       data: {
         userId: user.id,
         fullName: payload.explorer.fullName,
         phone: payload.explorer.phone,
         gender: payload.explorer.gender as Gender,
-        profilePicture: payload.explorer.profilePicture || null,
+        // profilePicture: payload.explorer.profilePicture || null,
       },
     });
 
