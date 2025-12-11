@@ -27,7 +27,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
     throw new customError(StatusCodes.BAD_REQUEST, "Explorer already exists! Please use another email")
   }
 
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx:any) => {
     const hashedPassword = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND as string));
 
     // 1️⃣ Create user
@@ -85,7 +85,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
   }
 
   // Run transaction to create user + admin
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx:any) => {
     const hashedPassword = await bcrypt.hash(
       payload.password,
       Number(envVars.BCRYPT_SALT_ROUND)
@@ -133,7 +133,7 @@ const updateProfilePicture = async (
 
    const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { explorers: true, admins: true },
+    include: { explorer: true, admin: true },
   });
 
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
@@ -141,14 +141,14 @@ const updateProfilePicture = async (
   // Identify target model based on role
   const target =
     user.role === "ADMIN"
-      ? user.admins[0]
-      : user.explorers[0];
+      ? user.admin
+      : user.explorer;
 
   if (!target)
     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
 
   // Update inside transaction
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx:any) => {
     if (user.role === "ADMIN") {
       return await tx.admin.update({
         where: { id: target.id },
@@ -171,7 +171,7 @@ const updateUserProfile = async (
 ) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { explorers: true, admins: true },
+    include: { explorer: true, admin: true },
   });
 
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
@@ -179,8 +179,8 @@ const updateUserProfile = async (
   // Role based profile
   const target =
     user.role === "ADMIN"
-      ? user.admins[0]
-      : user.explorers[0];
+      ? user.admin
+      : user.explorer;
 
   if (!target)
     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
@@ -188,7 +188,7 @@ const updateUserProfile = async (
   // Never update email or password here  
   const allowedData = { ...data };
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx:any) => {
     if (user.role === "ADMIN") {
       return tx.admin.update({
         where: { id: target.id },
@@ -238,8 +238,8 @@ const getSingleUser = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      explorers: true,
-      admins: true,
+      explorer: true,
+      admin: true,
     },
   });
 
@@ -254,8 +254,8 @@ const getMe = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      explorers: true,
-      admins: true,
+      explorer: true,
+      admin: true,
     },
   });
 

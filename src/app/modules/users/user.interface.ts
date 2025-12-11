@@ -1,3 +1,5 @@
+// import { Gender } from "@prisma/client";
+
 import { Gender } from "@prisma/client";
 
 export interface ICreateExplorer {
@@ -7,7 +9,7 @@ export interface ICreateExplorer {
     fullName: string;
     phone: string;
     gender: string;
-    profilePicture: string;
+    // profilePicture: string;
   }
 }
 
