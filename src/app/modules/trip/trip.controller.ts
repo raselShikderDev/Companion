@@ -84,14 +84,15 @@ export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 console.log("userid in controller my trips: ", userId);
 
-  const myTrips = await TripService.getMyTrips(userId);
+  const myTrips = await TripService.getMyTrips(userId, req.query as Record<string, string>);
   console.log(myTrips);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Your trips fetched successfully",
-    data: myTrips,
+    data: myTrips.data,
+    meta: myTrips.meta,
   });
 });
 

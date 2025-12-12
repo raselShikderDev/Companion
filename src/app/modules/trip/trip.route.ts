@@ -21,7 +21,7 @@ router.post(
 router.get("/", TripController.getAllTrips);
 
 // Get logged-in user's trips
-router.get("/my-list", checkAuth(Role.EXPLORER), TripController.getMyTrips);
+router.get("/my-trips", checkAuth(Role.EXPLORER), TripController.getMyTrips);
 
 // Get single trip
 router.get("/:id", TripController.getTripById);
