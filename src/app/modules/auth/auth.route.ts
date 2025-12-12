@@ -6,8 +6,8 @@ import { authController } from "./authController";
 
 const router = Router();
 
-router.post("/login", validateRequest(loginZodSchema), authController.login);
-router.post("/logout", authController.logOut);
+router.post("/signin", validateRequest(loginZodSchema), authController.login);
+router.post("/signout", authController.logOut);
 
 router.post("/refresh-token", authController.refreshToken);
 

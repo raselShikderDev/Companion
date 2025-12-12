@@ -10,23 +10,6 @@ import { Role } from "@prisma/client";
 
 const router = Router()
 
-router.post("/create-explorer", validateRequest(createExplorerZodSchema), userController.createExplorer);
-router.post("/create-admin", validateRequest(createAdminZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.createAdmin);
-// Change profile picture
-router.patch(
-  "/profile-picture",
-  checkAuth(Role.ADMIN, Role.EXPLORER),
-  validateRequest(updateProfilePictureSchema),
-  userController.updateProfilePicture
-);
-
-// Update profile info (except email, password)
-router.patch(
-  "/update-profile",
-  checkAuth(Role.ADMIN, Role.EXPLORER),
-  validateRequest(updateUserProfileSchema),
-  userController.updateUserProfile
-);
 // Get all users (Admin only)
 router.get(
   "/",
@@ -44,8 +27,29 @@ router.get(
 // Get logged-in user profile (Admin + Explorer)
 router.get(
   "/me",
-  checkAuth(Role.ADMIN, Role.EXPLORER),
+  checkAuth(...(Object.values(Role))),
   userController.getMe
 );
+
+router.post("/create-explorer", validateRequest(createExplorerZodSchema), userController.createExplorer);
+router.post("/create-admin", validateRequest(createAdminZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.createAdmin);
+// Change profile picture
+router.patch(
+  "/profile-picture",
+  checkAuth(Role.ADMIN, Role.EXPLORER),
+  validateRequest(updateProfilePictureSchema),
+  userController.updateProfilePicture
+);
+
+// Update profile info (except email, password)
+router.patch(
+  "/update-profile",
+  checkAuth(Role.ADMIN, Role.EXPLORER),
+  validateRequest(updateUserProfileSchema),
+  userController.updateUserProfile
+);
+
+
+
 
 export const userRouter = router

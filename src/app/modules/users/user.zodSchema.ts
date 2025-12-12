@@ -10,7 +10,7 @@ export const createExplorerZodSchema = z.object({
         gender: z.enum(["MALE", "FEMALE"], {
             error: "Gender must be male, female or other"
         }),
-        profilePicture: z.string().url("Profile picture must be a valid URL"),
+        // profilePicture: z.url("Profile picture must be a valid URL"),
     })
 });
 

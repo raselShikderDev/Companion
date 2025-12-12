@@ -152,7 +152,7 @@ const forgotPassword = async (input: ForgotPasswordInput) => {
     await redisClient.incr(rateKey);
     await redisClient.expire(rateKey, 60 * 60); // 1 hour
 
-    // Send email with OTP (secure: don't include extra info)
+    
     // const resetVerifyUrl = `${envVars.FRONEND_URL}/auth/verify-otp`; // frontend route if you have one
 
 
