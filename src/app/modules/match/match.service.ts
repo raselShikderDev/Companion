@@ -4,7 +4,7 @@ import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
 import { UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, Prisma } from "@prisma/client";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 // export const createMatch = async (data: CreateMatchInput, userId: string) => {
@@ -139,7 +139,6 @@ const createMatch = async (requesterUserId: string, tripId: string) => {
     );
   }
 
-  // ✅ 7. Create match safely inside transaction
   const match = await prisma.$transaction(async (tx) => {
     const newMatch = await tx.match.create({
       data: {
@@ -295,7 +294,7 @@ const getAllMatches = async (query: Record<string, string>) => {
   // });
   const matches = await prisma.match.findMany({
     ...builtQuery,
-    include: { requester: true, recipient: true },
+    include: { requester: true, recipient: true, reviews:true },
   });
 
   const total = await prisma.match.count({ where: builtQuery.where });
@@ -313,38 +312,128 @@ const getAllMatches = async (query: Record<string, string>) => {
 /**
  * Get matches for the logged-in explorer
  */
-const getMyMatches = async (userId: string) => {
-  const explorer = await prisma.explorer.findFirst({ where: { userId } });
+const getMyMatches = async (userId: string, query: Record<string, string>) => {
+  // 1️⃣ Resolve Explorer
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
+
   if (!explorer) {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  return prisma.match.findMany({
-    where: {
-      OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
-    },
-    include: {
-      requester: {
-        select: {
-          id: true,
-          fullName: true,
-          userId: true,
-          profilePicture: true,
+  // 2️⃣ Pagination
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // 3️⃣ Build WHERE safely
+  const whereCondition: Prisma.MatchWhereInput = {
+    OR: [
+      { requesterId: explorer.id },
+      { recipientId: explorer.id },
+    ],
+  };
+
+  // 4️⃣ Status filter (SAFE)
+  if (
+    query.status &&
+    query.status !== "ALL" &&
+    Object.values(MatchStatus).includes(query.status as MatchStatus)
+  ) {
+    whereCondition.status = query.status as MatchStatus;
+  }
+
+  // 5️⃣ Fetch data
+  const [data, total] = await prisma.$transaction([
+    prisma.match.findMany({
+      where: whereCondition,
+      include: {
+        trip: {
+          select: {
+            id: true,
+            title: true,
+            destination: true,
+            image: true,
+            status: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            fullName: true,
+            profilePicture: true,
+          },
+        },
+        recipient: {
+          select: {
+            id: true,
+            fullName: true,
+            profilePicture: true,
+          },
         },
       },
-      recipient: {
-        select: {
-          id: true,
-          fullName: true,
-          userId: true,
-          profilePicture: true,
-        },
-      },
-      trip: true,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+
+    prisma.match.count({
+      where: whereCondition,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
     },
-    orderBy: { createdAt: "desc" },
-  });
+    data,
+  };
 };
+
+
+
+// const getMyMatches = async (userId: string, query: Record<string, string>) => {
+//    const builtQuery = prismaQueryBuilder(query, ["status"]);
+
+//   const explorer = await prisma.explorer.findFirst({ where: { userId } });
+//   if (!explorer) {
+//     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+//   }
+
+//     const total = await prisma.match.count({ where: builtQuery.where });
+// console.log({total});
+
+
+//   return prisma.match.findMany({
+//     where: {
+//       OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
+//     },
+//     include: {
+//       requester: {
+//         select: {
+//           id: true,
+//           fullName: true,
+//           userId: true,
+//           profilePicture: true,
+//         },
+//       },
+//       recipient: {
+//         select: {
+//           id: true,
+//           fullName: true,
+//           userId: true,
+//           profilePicture: true,
+//         },
+//       },
+//       trip: true,
+//       reviews:true,
+//     },
+//     orderBy: { createdAt: "desc" },
+//   });
+// };
 
 /**
  * Delete match

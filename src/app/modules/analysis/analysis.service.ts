@@ -31,7 +31,35 @@ const getExplorerAnalysis = async (userId: string) => {
     _avg: { rating: true },
   });
 
+  const [
+    totalTrips,
+    totalMatches,
+    totalReviews,
+    activeSubscription,
+  ] = await Promise.all([
+    prisma.trip.count({ where: { creatorId: explorer.id } }),
+    prisma.match.count({
+      where: {
+        OR: [
+          { requesterId: explorer.id },
+          { recipientId: explorer.id },
+        ],
+      },
+    }),
+    prisma.review.count({
+      where: { reviewerId: explorer.id },
+    }),
+    prisma.subscription.findUnique({
+      where: { explorerId: explorer.id },
+    }),
+  ]);
+
   return {
+    totalTrips,
+    totalMatches,
+    totalReviews,
+    isPremium: explorer.isPremium,
+    activeSubscription,
     matchSuccessRate: matchSuccessRate._count,
     completedTrips,
     averageRating: avgRating._avg.rating || 0,
@@ -51,7 +79,29 @@ const getAdminAnalysis = async () => {
     _count: true,
   });
 
+   const [
+    totalUsers,
+    totalExplorers,
+    totalTrips,
+    totalMatches,
+    totalRevenue,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.explorer.count(),
+    prisma.trip.count(),
+    prisma.match.count(),
+    prisma.payment.aggregate({
+      _sum: { amount: true },
+      where: { status: "PAID" },
+    }),
+  ]);
+
   return {
+    totalUsers,
+    totalExplorers,
+    totalTrips,
+    totalMatches,
+    totalRevenue: totalRevenue._sum.amount || 0,
     tripCompletionRate: tripCompletionRate._count,
     userGrowth,
     reviewDistribution,

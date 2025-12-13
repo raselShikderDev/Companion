@@ -84,14 +84,15 @@ export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 console.log("userid in controller my trips: ", userId);
 
-  const myTrips = await TripService.getMyTrips(userId);
+  const myTrips = await TripService.getMyTrips(userId, req.query as Record<string, string>);
   console.log(myTrips);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Your trips fetched successfully",
-    data: myTrips,
+    data: myTrips.data,
+    meta: myTrips.meta,
   });
 });
 
@@ -134,6 +135,29 @@ const updateTripStatus =  catchAsync(async (req, res) => {
   });
 });
 
+export const getAvailableTrips = catchAsync(
+  async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
+
+    const result = await TripService.getAvailableTrips(
+      userId,
+      req.query
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Available trips fetched successfully",
+      meta: result.meta,
+      data: result.data,
+    });
+  }
+);
+
+
 export const TripController = {
   createTrip,
   updateTrip,
@@ -142,4 +166,5 @@ export const TripController = {
   getMyTrips,
   deleteTrip,
   updateTripStatus,
+  getAvailableTrips,
 };

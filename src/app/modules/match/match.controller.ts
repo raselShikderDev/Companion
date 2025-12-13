@@ -87,7 +87,7 @@ export const getMyMatches = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
 
-  const matches = await matchService.getMyMatches(userId);
+  const matches = await matchService.getMyMatches(userId, req.query as Record<string, string>);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
