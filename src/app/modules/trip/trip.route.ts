@@ -23,6 +23,13 @@ router.get("/", TripController.getAllTrips);
 // Get logged-in user's trips
 router.get("/my-trips", checkAuth(Role.EXPLORER), TripController.getMyTrips);
 
+router.get(
+  "/available",
+  checkAuth(Role.EXPLORER),
+  TripController.getAvailableTrips
+);
+
+
 // Get single trip
 router.get("/:id", TripController.getTripById);
 

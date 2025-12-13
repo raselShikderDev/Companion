@@ -139,7 +139,6 @@ const createMatch = async (requesterUserId: string, tripId: string) => {
     );
   }
 
-  // ✅ 7. Create match safely inside transaction
   const match = await prisma.$transaction(async (tx) => {
     const newMatch = await tx.match.create({
       data: {
@@ -295,7 +294,7 @@ const getAllMatches = async (query: Record<string, string>) => {
   // });
   const matches = await prisma.match.findMany({
     ...builtQuery,
-    include: { requester: true, recipient: true },
+    include: { requester: true, recipient: true, },
   });
 
   const total = await prisma.match.count({ where: builtQuery.where });

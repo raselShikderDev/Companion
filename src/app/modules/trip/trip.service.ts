@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 /** biome-ignore-all assist/source/organizeImports: > */
 import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
@@ -292,6 +293,107 @@ const updateTripStatus = async (
   return updatedTrip;
 };
 
+const getAvailableTrips = async (
+  userId: string,
+  query: any
+) => {
+  // 1️⃣ Convert USER → EXPLORER
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
+
+  if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const search = query.search?.toString();
+
+  const filters: any = {};
+
+  if (query.destination) {
+    filters.destination = {
+      contains: query.destination,
+      mode: "insensitive",
+    };
+  }
+
+  if (query.status) {
+    filters.status = query.status;
+  }
+
+  const whereCondition = {
+    AND: [
+      { creatorId: { not: explorer.id } },
+
+      { matchCompleted: false },
+
+      {
+        matches: {
+          none: {
+            OR: [
+              { requesterId: explorer.id },
+              { recipientId: explorer.id },
+            ],
+          },
+        },
+      },
+
+      search
+        ? {
+            OR: [
+              {
+                title: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+              {
+                destination: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
+        : {},
+    ],
+    ...filters,
+  };
+
+  const [data, total] = await prisma.$transaction([
+    prisma.trip.findMany({
+      where: whereCondition,
+      include: {
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            profilePicture: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.trip.count({ where: whereCondition }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data,
+  };
+};
+
+
 export const TripService = {
   createTrip,
   updateTrip,
@@ -300,4 +402,5 @@ export const TripService = {
   getMyTrips,
   deleteTrip,
   updateTripStatus,
+  getAvailableTrips
 };
