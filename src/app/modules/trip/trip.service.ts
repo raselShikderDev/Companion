@@ -297,7 +297,6 @@ const getAvailableTrips = async (
   userId: string,
   query: any
 ) => {
-  // 1️⃣ Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -384,12 +383,12 @@ const getAvailableTrips = async (
   ]);
 
   return {
+    data,
     meta: {
       page,
       limit,
       total,
     },
-    data,
   };
 };
 

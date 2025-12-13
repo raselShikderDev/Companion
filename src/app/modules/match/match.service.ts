@@ -312,11 +312,17 @@ const getAllMatches = async (query: Record<string, string>) => {
 /**
  * Get matches for the logged-in explorer
  */
-const getMyMatches = async (userId: string) => {
+const getMyMatches = async (userId: string, query: Record<string, string>) => {
+   const builtQuery = prismaQueryBuilder(query, ["status"]);
+
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
   if (!explorer) {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
+
+    const total = await prisma.match.count({ where: builtQuery.where });
+console.log({total});
+
 
   return prisma.match.findMany({
     where: {
@@ -340,6 +346,7 @@ const getMyMatches = async (userId: string) => {
         },
       },
       trip: true,
+      reviews:true,
     },
     orderBy: { createdAt: "desc" },
   });
