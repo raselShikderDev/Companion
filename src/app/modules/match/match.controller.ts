@@ -13,8 +13,9 @@ import customError from "../../shared/customError";
  * body: { recipientId }
  * user (req.user) must be set by auth middleware (userId present)
  */
- const createMatch = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-   const requesterUserId = req.user?.id;
+const createMatch = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const requesterUserId = req.user?.id;
     if (!requesterUserId) {
       throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
     }
@@ -25,10 +26,7 @@ import customError from "../../shared/customError";
       throw new customError(StatusCodes.BAD_REQUEST, " Trip required");
     }
 
-    const match = await matchService.createMatch(
-      requesterUserId,
-      tripId
-    );
+    const match = await matchService.createMatch(requesterUserId, tripId);
 
     sendResponse(res, {
       success: true,
@@ -36,7 +34,8 @@ import customError from "../../shared/customError";
       message: "Match request sent successfully",
       data: match,
     });
-});
+  }
+);
 
 /**
  * PATCH /matches/:id/status
@@ -44,11 +43,15 @@ import customError from "../../shared/customError";
  */
 export const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 
   const matchId = req.params.id;
 
-  const updated = await matchService.updateMatchStatus(matchId, userId, req.body);
+  const updated = await matchService.updateMatchStatus(
+    matchId,
+    userId,
+    req.body
+  );
 
   sendResponse(res, {
     success: true,
@@ -63,7 +66,9 @@ export const updateStatus = catchAsync(async (req: Request, res: Response) => {
  * returns all matches
  */
 export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
-  const matches = await matchService.getAllMatches(req.query as Record<string, string>);
+  const matches = await matchService.getAllMatches(
+    req.query as Record<string, string>
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -73,10 +78,14 @@ export const getAllMatches = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 const getSingleMatch = catchAsync(async (req: Request, res: Response) => {
-  const data = await matchService.  getSingleMatch(req.params.id);
-  sendResponse(res, { success: true, statusCode: StatusCodes.OK, message: "Match fetched", data });
+  const data = await matchService.getSingleMatch(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Match fetched successfully",
+    data,
+  });
 });
 
 /**
@@ -85,9 +94,12 @@ const getSingleMatch = catchAsync(async (req: Request, res: Response) => {
  */
 export const getMyMatches = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized" );
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 
-  const matches = await matchService.getMyMatches(userId, req.query as Record<string, string>);
+  const matches = await matchService.getMyMatches(
+    userId,
+    req.query as Record<string, string>
+  );
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -110,10 +122,9 @@ export const deleteMatch = catchAsync(async (req: Request, res: Response) => {
     success: true,
     statusCode: StatusCodes.OK,
     message: "Match deleted successfully",
-    data:null,
+    data: null,
   });
 });
-
 
 export const matchController = {
   createMatch,
