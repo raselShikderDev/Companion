@@ -1,4 +1,4 @@
-import { MatchStatus } from "@prisma/client";
+import { MatchStatus, TripStatus } from "@prisma/client";
 import { prisma } from "../../configs/db.config";
 
 const getExplorerAnalysis = async (userId: string) => {
@@ -23,6 +23,13 @@ const getExplorerAnalysis = async (userId: string) => {
     where: {
       creatorId: explorer.id,
       matchCompleted: true,
+    },
+  });
+
+  const activeTrips = await prisma.trip.count({
+    where: {
+      creatorId: explorer.id,
+      status: TripStatus.PLANNED,
     },
   });
 
@@ -58,6 +65,7 @@ const getExplorerAnalysis = async (userId: string) => {
     totalTrips,
     totalMatches,
     totalReviews,
+    activeTrips,
     isPremium: explorer.isPremium,
     activeSubscription,
     matchSuccessRate: matchSuccessRate._count,

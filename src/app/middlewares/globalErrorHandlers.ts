@@ -94,6 +94,7 @@ export const globalErrorHandler = (
 ) => {
     // Process the raw error into a standardized customError object
     const error = processRawError(err);
+console.log(error);
 
     // Log the detailed stack trace for all 500 errors
     if (error.statusCode >= 500) {
