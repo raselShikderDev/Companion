@@ -7,7 +7,6 @@ import { UpdateMatchStatusInput } from "./match.interface";
 import { MatchStatus, Prisma } from "@prisma/client";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
-
 const createMatch = async (requesterUserId: string, tripId: string) => {
   // 1. Get Trip + Creator
   const trip = await prisma.trip.findUnique({
@@ -107,7 +106,6 @@ const createMatch = async (requesterUserId: string, tripId: string) => {
   return match;
 };
 
-
 const updateMatchStatus = async (
   matchId: string,
   actingUserId: string,
@@ -168,10 +166,10 @@ const getSingleMatch = async (id: string) => {
  */
 const getAllMatches = async (query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, ["status"]);
-  
+
   const matches = await prisma.match.findMany({
     ...builtQuery,
-    include: { requester: true, recipient: true, reviews:true },
+    include: { requester: true, recipient: true, reviews: true },
   });
 
   const total = await prisma.match.count({ where: builtQuery.where });
@@ -203,12 +201,9 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
   const skip = (page - 1) * limit;
 
   const whereCondition: Prisma.MatchWhereInput = {
-    OR: [
-      { requesterId: explorer.id },
-      { recipientId: explorer.id },
-    ],
+    OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   };
-console.log({"query.status": query.status});
+  console.log({ "query.status": query.status });
 
   if (
     query.status &&
@@ -222,6 +217,7 @@ console.log({"query.status": query.status});
     prisma.match.findMany({
       where: whereCondition,
       include: {
+        reviews: true,
         trip: {
           select: {
             id: true,
@@ -265,9 +261,6 @@ console.log({"query.status": query.status});
     data,
   };
 };
-
-
-
 
 /**
  * Delete match
