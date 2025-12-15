@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
@@ -8,6 +9,7 @@ import { Gender, Role } from "@prisma/client";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
+import { safeUser } from "../../helper/safeUser";
 
 
 
