@@ -138,107 +138,152 @@ const getTripById = async (tripId: string) => {
   return trip;
 };
 
-const getAllTrips = async (query: Record<string, string>) => {
-  console.log("query.matchCompleted: ", query.matchCompleted);
-
-  const builtQuery = prismaQueryBuilder(query, [
-    "title",
-    "destination",
-    "matchCompleted",
-  ]);
+const getAllTrips = async (filters, options) => {
+  const { limit, page, skip } = pagginationHelper.calculatePaggination(options);
+  const { searchTerm, ...filterData } = filters;
 
   const trips = await prisma.trip.findMany({
-    ...builtQuery,
-    include: {
-      creator: true,
-    },
+    where: builtQuery.where,
+    include: { creator: true },
+    orderBy: builtQuery.orderBy,
+    skip: builtQuery.skip,
+    take: builtQuery.take,
   });
-  const total = await prisma.trip.count({ where: builtQuery.where });
+
+  const total = await prisma.trip.count({
+    where: builtQuery.where,
+  });
 
   return {
     data: trips,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
   };
 };
+
 
 const getAllAvailableTrips = async (query: Record<string, string>) => {
-  // return prisma.trip.findMany({
-  //   include: { creator: true },
-  //   orderBy: { createdAt: "desc" },
-  // });
   const builtQuery = prismaQueryBuilder(query, [
-    "title",
+   "title",
     "destination",
+    "budget",
+    "status",
     "matchCompleted",
   ]);
 
+  const whereCondition = {
+    ...builtQuery.where,
+    matchCompleted: false,
+  };
+
   const trips = await prisma.trip.findMany({
-    ...builtQuery,
-    where: {
-      matchCompleted: false,
-    },
-    include: {
-      creator: true,
-    },
+    where: whereCondition,
+    include: { creator: true },
+    orderBy: builtQuery.orderBy,
+    skip: builtQuery.skip,
+    take: builtQuery.take,
   });
-  const total = await prisma.trip.count({ where: builtQuery.where });
+
+  const total = await prisma.trip.count({
+    where: whereCondition,
+  });
 
   return {
     data: trips,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
   };
 };
+
+
 
 const getMyTrips = async (userId: string, query: Record<string, string>) => {
-  console.log({ userId });
-  if (query?.title) {
-    console.log("query?.title:", query?.title);
-  } else if (query?.status) {
-    console.log("query?.status:", query?.status);
-  } else if (query?.budget) {
-    console.log("query?.budget:", query?.budget);
-  } else if (query?.destination) {
-    console.log("query?.destination:", query?.destination);
-  } else if (query?.matchCompleted) {
-    console.log("query?.matchCompleted:", query?.matchCompleted);
-  } else {
-    console.log(query);
-  }
-
   const builtQuery = prismaQueryBuilder(query, [
     "title",
-    "status",
-    "budget",
     "destination",
+    "status",
     "matchCompleted",
   ]);
 
-  const trips = await prisma.trip.findMany({
-    where: { ...builtQuery, creator: { userId } },
-    include: { creator: true },
-    orderBy: { createdAt: "desc" },
-  });
-  console.log("my trips: ", trips);
+  const whereCondition = {
+    ...builtQuery.where,
+    creator: { userId },
+  };
 
-  const total = await prisma.trip.count({ where: builtQuery.where });
+  const [trips, total] = await prisma.$transaction([
+    prisma.trip.findMany({
+      where: whereCondition,
+      include: { creator: true },
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.take,
+    }),
+    prisma.trip.count({
+      where: whereCondition,
+    }),
+  ]);
 
   return {
     data: trips,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
   };
 };
+
+// const getMyTrips = async (userId: string, query: Record<string, string>) => {
+//   console.log({ userId });
+//   if (query?.title) {
+//     console.log("query?.title:", query?.title);
+//   } else if (query?.status) {
+//     console.log("query?.status:", query?.status);
+//   } else if (query?.budget) {
+//     console.log("query?.budget:", query?.budget);
+//   } else if (query?.destination) {
+//     console.log("query?.destination:", query?.destination);
+//   } else if (query?.matchCompleted) {
+//     console.log("query?.matchCompleted:", query?.matchCompleted);
+//   } else {
+//     console.log(query);
+//   }
+
+//   const builtQuery = prismaQueryBuilder(query, [
+//     "title",
+//     "status",
+//     "budget",
+//     "destination",
+//     "matchCompleted",
+//   ]);
+//   console.log("builtQuery", builtQuery);
+  
+
+//   const trips = await prisma.trip.findMany({
+//     where: { ...builtQuery, creator: { userId } },
+//     include: { creator: true },
+//     orderBy: { createdAt: "desc" },
+//   });
+//   console.log("my trips: ", trips);
+
+//   const total = await prisma.trip.count({ where: builtQuery.where });
+
+//   return {
+//     data: trips,
+//     meta: {
+//       page: Number(query.page) || 1,
+//       limit: Number(query.limit) || 10,
+//       total,
+//     },
+//   };
+// };
+
 
 const deleteTrip = async (tripId: string, userId: string) => {
   const trip = await prisma.trip.findUnique({

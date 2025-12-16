@@ -9,7 +9,7 @@
 
 export interface ISearchAndFilter {
   searchTerm?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, string>;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   page?: number;
@@ -17,23 +17,26 @@ export interface ISearchAndFilter {
 }
 
 export const prismaQueryBuilder = (
-  query: ISearchAndFilter,
+  query: Record<string, string | number>,
   searchableFields: string[]
 ) => {
-  const {
-    searchTerm,
-    filters = {},
-    sortBy = "createdAt",
-    sortOrder = "desc",
-    page = 1,
-    limit = 10,
-  } = query;
-
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  // --- Search Condition (OR) ---
+  const searchTerm = query.searchTerm;
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder || "desc";
+
+  const filters = { ...query };
+  delete filters.page;
+  delete filters.limit;
+  delete filters.searchTerm;
+  delete filters.sortBy;
+  delete filters.sortOrder;
+
   const searchConditions =
-    searchTerm && searchableFields.length > 0
+    searchTerm && searchableFields.length
       ? {
           OR: searchableFields.map((field) => ({
             [field]: {
@@ -44,9 +47,8 @@ export const prismaQueryBuilder = (
         }
       : {};
 
-  // --- Filter Conditions (AND) ---
   const filterConditions =
-    Object.keys(filters).length > 0
+    Object.keys(filters).length
       ? {
           AND: Object.entries(filters).map(([field, value]) => ({
             [field]: value,
@@ -64,5 +66,8 @@ export const prismaQueryBuilder = (
     },
     skip,
     take: limit,
+    page,
+    limit,
   };
 };
+

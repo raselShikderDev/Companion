@@ -8,6 +8,8 @@ import { StatusCodes } from "http-status-codes";
 import sendResponse from "../../shared/sendResponse";
 import customError from "../../shared/customError";
 import { TripStatus } from "@prisma/client";
+import pick from "../../shared/pick";
+import { tripFilterOptions, tripSearchAbleFeild } from "./trip.constraints";
 
 // Create trip
 export const createTrip = catchAsync(
@@ -67,7 +69,9 @@ export const getTripById = catchAsync(async (req: Request, res: Response) => {
 
 // Get all trips
 export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
-  const trips = await TripService.getAllTrips(req.query as Record<string, string>);
+const filters = pick(req.query ?? {}, tripSearchAbleFeild);
+    const options = pick(req.query ?? {}, tripFilterOptions);
+  const trips = await TripService.getAllTrips(filters, options);
 
   sendResponse(res, {
     success: true,
