@@ -23,20 +23,20 @@ const createTrip = async (data: createTripInput, userId: string) => {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // Count total matches
-  const totalMatches =
-    (explorer.outgoingMatches?.length || 0) +
-    (explorer.incomingMatches?.length || 0);
+  // // Count total matches
+  // const totalMatches =
+  //   (explorer.outgoingMatches?.length || 0) +
+  //   (explorer.incomingMatches?.length || 0);
 
-  // Check subscription
-  const hasActiveSubscription = explorer.subscription?.isActive;
+  // // Check subscription
+  // const hasActiveSubscription = explorer.subscription?.isActive;
 
-  if (totalMatches >= 3 && !hasActiveSubscription) {
-    throw new customError(
-      StatusCodes.BAD_REQUEST,
-      "You have reached 3 matches. Please subscribe to create more trips."
-    );
-  }
+  // if (totalMatches >= 3 && !hasActiveSubscription) {
+  //   throw new customError(
+  //     StatusCodes.BAD_REQUEST,
+  //     "You have reached 3 matches. Please subscribe to create more trips."
+  //   );
+  // }
 
   // Transaction: create trip and automatically associate with explorer
   const trip = await prisma.$transaction(async (prismaTx) => {

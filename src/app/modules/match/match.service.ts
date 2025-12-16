@@ -111,44 +111,106 @@ const updateMatchStatus = async (
   actingUserId: string,
   input: UpdateMatchStatusInput
 ) => {
-  const match = await prisma.match.findUnique({
-    where: { id: matchId },
-    include: { requester: true, recipient: true },
-  });
-  if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
-
-  // Only requester or recipient can change status; recipient typically accepts/rejects
+  //  Convert USER → EXPLORER
   const actingExplorer = await prisma.explorer.findFirst({
     where: { userId: actingUserId },
   });
-  if (!actingExplorer)
-    throw new customError(StatusCodes.NOT_FOUND, "User not found as explorer");
 
-  // check permission
-  if (![match.requesterId, match.recipientId].includes(actingExplorer.id)) {
+  if (!actingExplorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  // Fetch Match + Trip
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    include: { trip: true },
+  });
+
+  if (!match) {
+    throw new customError(StatusCodes.NOT_FOUND, "Match not found");
+  }
+
+  const isRequester = match.requesterId === actingExplorer.id;
+  const isRecipient = match.recipientId === actingExplorer.id;
+
+  //  Must be part of the match
+  if (!isRequester && !isRecipient) {
     throw new customError(
       StatusCodes.FORBIDDEN,
-      "Not allowed to modify this match"
+      "You are not part of this match"
+    );
+  }
+ if (MatchStatus.COMPLETED === match.status && input.status === MatchStatus.COMPLETED) {
+      throw new customError(
+        StatusCodes.CONFLICT,
+        "Match is already completed"
+      );
+    }
+  //  Prevent invalid state updates
+  if (
+    match.status === MatchStatus.REJECTED ||
+    match.status === MatchStatus.CANCELLED
+  ) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "This match can no longer be updated"
     );
   }
 
-  // If status transitions to ACCEPTED, you may want to update something on Trip or both explorers (example)
-  const updatedMatch = await prisma.$transaction(async (tx) => {
-    const m = await tx.match.update({
-      where: { id: matchId },
-      data: { status: input.status },
-    });
+  //  CANCEL — requester only
+  if (input.status === MatchStatus.CANCELLED) {
+    if (!isRequester) {
+      throw new customError(
+        StatusCodes.FORBIDDEN,
+        "Only requester can cancel the match"
+      );
+    }
+  }
 
-    // Example: if ACCEPTED, increment some count or update trip.matchCompleted if relevant
-    if (input.status === MatchStatus.ACCEPTED) {
-      // no direct link to a trip in your model — if you have logic to mark a Trip matchCompleted, add it here
+  // ACCEPT / REJECT — recipient only
+  if (
+    input.status === MatchStatus.ACCEPTED ||
+    input.status === MatchStatus.REJECTED
+  ) {
+    if (!isRecipient) {
+      throw new customError(
+        StatusCodes.FORBIDDEN,
+        "Only trip owner can accept or reject the match"
+      );
+    }
+  }
+
+  // COMPLETED — STRICT CONDITIONS
+  if (input.status === MatchStatus.COMPLETED) {
+    if (match.status !== MatchStatus.ACCEPTED) {
+      throw new customError(
+        StatusCodes.BAD_REQUEST,
+        "Match must be accepted before completion"
+      );
     }
 
-    return m;
+    if (!match.trip.matchCompleted) {
+      throw new customError(
+        StatusCodes.BAD_REQUEST,
+        "Trip must be completed before marking match as completed"
+      );
+    }
+
+  }
+
+  // transaction-safe update
+  const updatedMatch = await prisma.$transaction(async (tx) => {
+    return tx.match.update({
+      where: { id: matchId },
+      data: {
+        status: input.status,
+      },
+    });
   });
 
   return updatedMatch;
 };
+
 
 const getSingleMatch = async (id: string) => {
   const match = await prisma.match.findUnique({
@@ -165,10 +227,15 @@ const getSingleMatch = async (id: string) => {
  * Get all matches (admin / public). Include explorer basics.
  */
 const getAllMatches = async (query: Record<string, string>) => {
-  const builtQuery = prismaQueryBuilder(query, ["status"]);
+ const builtQuery = prismaQueryBuilder(query, ["status"]);
+
+ const whereCondition = {
+    ...builtQuery.where,
+  };
+ 
 
   const matches = await prisma.match.findMany({
-    ...builtQuery,
+    where:whereCondition,
     include: { requester: true, recipient: true, reviews: true },
   });
 
@@ -188,6 +255,8 @@ const getAllMatches = async (query: Record<string, string>) => {
  * Get matches for the logged-in explorer
  */
 const getMyMatches = async (userId: string, query: Record<string, string>) => {
+   const builtQuery = prismaQueryBuilder(query, ["status"]);
+
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -200,18 +269,17 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const whereCondition: Prisma.MatchWhereInput = {
-    OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
+  // const whereCondition: Prisma.MatchWhereInput = {
+  //   OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
+  // };
+
+  const whereCondition = {
+    ...builtQuery.where,
+   OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   };
   console.log({ "query.status": query.status });
 
-  if (
-    query.status &&
-    query.status !== "ALL" &&
-    Object.values(MatchStatus).includes(query.status as MatchStatus)
-  ) {
-    whereCondition.status = query.status as MatchStatus;
-  }
+ 
 
   const [data, total] = await prisma.$transaction([
     prisma.match.findMany({

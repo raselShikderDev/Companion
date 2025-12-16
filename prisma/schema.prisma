@@ -22,7 +22,8 @@ enum MatchStatus {
     PENDING
     ACCEPTED
     REJECTED
-    BLOCKED
+    CANCELLED
+    COMPLETED
 }
 
 enum UserStatus {
@@ -154,7 +155,7 @@ model Match {
     trip      Trip     @relation(fields: [tripId], references: [id])
     reviews   Review[]
 
-    @@unique([requesterId, recipientId])
+    @@unique([requesterId, recipientId, tripId])
 }
 
 model Subscription {
