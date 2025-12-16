@@ -126,6 +126,58 @@ export const deleteMatch = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+const getAcceptedMatches = catchAsync(async (req: Request, res: Response) => {
+   const userId = req.user?.id;
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  const result = await matchService.getAcceptedMatches(
+    userId,
+    req.query as  Record<string, string>
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Accepted matches fetched successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getSentRequests = catchAsync(async (req: Request, res: Response) => {
+   const userId = req.user?.id;
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  const result = await matchService.getSentRequests(
+    userId,
+    req.query as  Record<string, string>
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Sent match requests fetched successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getPendingRequests = catchAsync(async (req: Request, res: Response) => {
+   const userId = req.user?.id;
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  const result = await matchService.getPendingRequests(
+    userId,
+    req.query as  Record<string, string>
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Pending match requests fetched successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const matchController = {
   createMatch,
   updateStatus,
@@ -133,4 +185,7 @@ export const matchController = {
   getMyMatches,
   deleteMatch,
   getSingleMatch,
+   getAcceptedMatches,
+  getSentRequests,
+  getPendingRequests,
 };

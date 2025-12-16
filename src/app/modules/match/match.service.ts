@@ -310,6 +310,129 @@ const deleteMatch = async (matchId: string, userId: string) => {
   return deleted;
 };
 
+const buildPagination = (query: Record<string, string>) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+  return { page, limit, skip };
+};
+
+const includePayload = {
+  trip: {
+    select: {
+      id: true,
+      title: true,
+      destination: true,
+      image: true,
+      status: true,
+    },
+  },
+  requester: {
+    select: {
+      id: true,
+      fullName: true,
+      profilePicture: true,
+    },
+  },
+  recipient: {
+    select: {
+      id: true,
+      fullName: true,
+      profilePicture: true,
+    },
+  },
+};
+
+/**
+ * ACCEPTED MATCHES
+ * requester OR recipient === me
+ */
+const getAcceptedMatches = async (userId: string, query:  Record<string, string>) => {
+  const explorer = await prisma.explorer.findFirst({ where: { userId } });
+  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+
+  const { page, limit, skip } = buildPagination(query);
+
+  const where: Prisma.MatchWhereInput = {
+    status: MatchStatus.ACCEPTED,
+    OR: [
+      { requesterId: explorer.id },
+      { recipientId: explorer.id },
+    ],
+  };
+
+  const [data, total] = await prisma.$transaction([
+    prisma.match.findMany({
+      where,
+      include: includePayload,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.match.count({ where }),
+  ]);
+
+  return { meta: { page, limit, total }, data };
+};
+
+/**
+ * SENT REQUESTS
+ * requester === me & status = PENDING
+ */
+const getSentRequests = async (userId: string, query:  Record<string, string>) => {
+  const explorer = await prisma.explorer.findFirst({ where: { userId } });
+  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+
+  const { page, limit, skip } = buildPagination(query);
+
+  const where: Prisma.MatchWhereInput = {
+    status: MatchStatus.PENDING,
+    requesterId: explorer.id,
+  };
+
+  const [data, total] = await prisma.$transaction([
+    prisma.match.findMany({
+      where,
+      include: includePayload,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.match.count({ where }),
+  ]);
+
+  return { meta: { page, limit, total }, data };
+};
+
+/**
+ * PENDING REQUESTS
+ * recipient === me & status = PENDING
+ */
+const getPendingRequests = async (userId: string, query:  Record<string, string>) => {
+  const explorer = await prisma.explorer.findFirst({ where: { userId } });
+  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+
+  const { page, limit, skip } = buildPagination(query);
+
+  const where: Prisma.MatchWhereInput = {
+    status: MatchStatus.PENDING,
+    recipientId: explorer.id,
+  };
+
+  const [data, total] = await prisma.$transaction([
+    prisma.match.findMany({
+      where,
+      include: includePayload,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.match.count({ where }),
+  ]);
+
+  return { meta: { page, limit, total }, data };
+};
+
 export const matchService = {
   createMatch,
   updateMatchStatus,
@@ -317,4 +440,7 @@ export const matchService = {
   getMyMatches,
   deleteMatch,
   getSingleMatch,
+   getAcceptedMatches,
+  getSentRequests,
+  getPendingRequests,
 };

@@ -139,7 +139,6 @@ const getTripById = async (tripId: string) => {
 };
 
 const getAllTrips = async (query: Record<string, string>) => {
-
   console.log("query.matchCompleted: ", query.matchCompleted);
 
   const builtQuery = prismaQueryBuilder(query, [
@@ -200,14 +199,30 @@ const getAllAvailableTrips = async (query: Record<string, string>) => {
 
 const getMyTrips = async (userId: string, query: Record<string, string>) => {
   console.log({ userId });
+  if (query?.title) {
+    console.log("query?.title:", query?.title);
+  } else if (query?.status) {
+    console.log("query?.status:", query?.status);
+  } else if (query?.budget) {
+    console.log("query?.budget:", query?.budget);
+  } else if (query?.destination) {
+    console.log("query?.destination:", query?.destination);
+  } else if (query?.matchCompleted) {
+    console.log("query?.matchCompleted:", query?.matchCompleted);
+  } else {
+    console.log(query);
+  }
+
   const builtQuery = prismaQueryBuilder(query, [
     "title",
+    "status",
+    "budget",
     "destination",
     "matchCompleted",
   ]);
 
   const trips = await prisma.trip.findMany({
-    where: { creator: { userId } },
+    where: { ...builtQuery, creator: { userId } },
     include: { creator: true },
     orderBy: { createdAt: "desc" },
   });
@@ -426,4 +441,5 @@ export const TripService = {
   deleteTrip,
   updateTripStatus,
   getAvailableTrips,
+  getAllAvailableTrips,
 };

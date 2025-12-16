@@ -40,6 +40,24 @@ import { matchController } from "./match.controller";
 
 const router = Router();
 
+router.get(
+  "/accepted",
+  checkAuth(Role.EXPLORER),
+  matchController.getAcceptedMatches
+);
+
+router.get(
+  "/sent",
+  checkAuth(Role.EXPLORER),
+  matchController.getSentRequests
+);
+
+router.get(
+  "/pending",
+  checkAuth(Role.EXPLORER),
+  matchController.getPendingRequests
+);
+
 // Create a match request
 router.post(
   "/create",
