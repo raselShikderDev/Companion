@@ -138,9 +138,14 @@ const getTripById = async (tripId: string) => {
   return trip;
 };
 
-const getAllTrips = async (filters, options) => {
-  const { limit, page, skip } = pagginationHelper.calculatePaggination(options);
-  const { searchTerm, ...filterData } = filters;
+const getAllTrips = async (query: Record<string, string>) => {
+  const builtQuery = prismaQueryBuilder(query, [
+    "title",
+    "destination",
+    "budget",
+    "status",
+    "matchCompleted",
+  ]);
 
   const trips = await prisma.trip.findMany({
     where: builtQuery.where,
@@ -164,10 +169,9 @@ const getAllTrips = async (filters, options) => {
   };
 };
 
-
 const getAllAvailableTrips = async (query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, [
-   "title",
+    "title",
     "destination",
     "budget",
     "status",
@@ -200,8 +204,6 @@ const getAllAvailableTrips = async (query: Record<string, string>) => {
     },
   };
 };
-
-
 
 const getMyTrips = async (userId: string, query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, [
@@ -263,7 +265,6 @@ const getMyTrips = async (userId: string, query: Record<string, string>) => {
 //     "matchCompleted",
 //   ]);
 //   console.log("builtQuery", builtQuery);
-  
 
 //   const trips = await prisma.trip.findMany({
 //     where: { ...builtQuery, creator: { userId } },
@@ -283,7 +284,6 @@ const getMyTrips = async (userId: string, query: Record<string, string>) => {
 //     },
 //   };
 // };
-
 
 const deleteTrip = async (tripId: string, userId: string) => {
   const trip = await prisma.trip.findUnique({
