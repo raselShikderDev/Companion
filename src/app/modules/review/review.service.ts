@@ -10,7 +10,7 @@ import { MatchStatus, ReviewStatus, TripStatus } from "@prisma/client";
 const createReview = async (userId: string, data: CreateReviewInput) => {
   const { matchId, rating, comment } = data;
 
-  // ✅ 1. Convert USER → EXPLORER
+  //  1. Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -19,9 +19,9 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // ✅ 2. Get Match + Trip
+  //  2. Get Match + Trip
   const match = await prisma.match.findUnique({
-    where: { id: matchId, status:MatchStatus.ACCEPTED},
+    where: { id: matchId, status: MatchStatus.COMPLETED },
     include: { trip: true },
   });
 
@@ -35,18 +35,15 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     matchRecipient: match.recipientId,
   });
 
-  // ✅ 3. TRUE MATCH MEMBERSHIP CHECK (FIXED)
-  if (
-    match.requesterId !== explorer.id &&
-    match.recipientId !== explorer.id
-  ) {
+  //  3. TRUE MATCH MEMBERSHIP CHECK (FIXED)
+  if (match.requesterId !== explorer.id && match.recipientId !== explorer.id) {
     throw new customError(
       StatusCodes.FORBIDDEN,
       "You are not part of this match"
     );
   }
 
-  // ✅ 4. Match must be ACCEPTED
+  //  4. Match must be ACCEPTED
   if (match.status !== MatchStatus.ACCEPTED) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
@@ -54,7 +51,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // ✅ 5. Trip must be completed
+  //  5. Trip must be completed
   if (match.trip.status !== TripStatus.COMPLETED) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
@@ -62,11 +59,11 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // ✅ 6. Prevent duplicate review
+  //  6. Prevent duplicate review
   const alreadyReviewed = await prisma.review.findFirst({
     where: {
       matchId,
-      reviewerId: explorer.id, // ✅ FIXED
+      reviewerId: explorer.id, //  FIXED
     },
   });
 
@@ -77,12 +74,12 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
     );
   }
 
-  // ✅ 7. Create review safely
+  //  7. Create review safely
   const review = await prisma.$transaction(async (tx) => {
     return await tx.review.create({
       data: {
         matchId,
-        reviewerId: explorer.id, 
+        reviewerId: explorer.id,
         rating,
         comment,
         status: ReviewStatus.APPROVED,
@@ -92,7 +89,6 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
 
   return review;
 };
-
 
 const getAllReviews = async (query: Record<string, string>) => {
   //   return prisma.review.findMany({
@@ -170,7 +166,7 @@ const updateReview = async (
   userId: string,
   data: UpdateReviewInput
 ) => {
-  // ✅ 1. Convert USER → EXPLORER
+  //  1. Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -179,7 +175,7 @@ const updateReview = async (
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // ✅ 2. Get review
+  //  2. Get review
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
   });
@@ -194,7 +190,7 @@ const updateReview = async (
     reviewReviewerId: review.reviewerId,
   });
 
-  // ✅ 3. TRUE OWNERSHIP CHECK
+  //  3. TRUE OWNERSHIP CHECK
   if (review.reviewerId !== explorer.id) {
     throw new customError(
       StatusCodes.FORBIDDEN,
@@ -202,7 +198,7 @@ const updateReview = async (
     );
   }
 
-  // ✅ 4. Update review
+  //  4. Update review
   const updated = await prisma.review.update({
     where: { id: reviewId },
     data,
@@ -210,7 +206,6 @@ const updateReview = async (
 
   return updated;
 };
-
 
 const deleteReview = async (reviewId: string, userId: string) => {
   const review = await prisma.review.findUnique({

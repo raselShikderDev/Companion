@@ -305,7 +305,7 @@ const updateTripStatus = async (
   userId: string,
   newStatus: TripStatus
 ) => {
-  // ✅ 1. Convert USER → EXPLORER
+  // 1. Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -314,7 +314,7 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // ✅ 2. Load trip with ACCEPTED matches only
+  //  2. Load trip with ACCEPTED matches only
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
     include: {
@@ -330,7 +330,7 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   }
 
-  // ✅ 3. Must either be:
+  //  3. Must either be:
   // - trip creator
   // - OR part of an accepted match
   const isCreator = trip.creatorId === explorer.id;
@@ -345,7 +345,7 @@ const updateTripStatus = async (
     );
   }
 
-  // ✅ 4. Already completed protection
+  //  4. Already completed protection
   if (
     trip.status === TripStatus.COMPLETED ||
     trip.status === TripStatus.CANCELLED
@@ -356,9 +356,9 @@ const updateTripStatus = async (
     );
   }
 
-  // ✅ 5. TRANSACTION-SAFE UPDATE
+  //  5. TRANSACTION-SAFE UPDATE
   const updatedTrip = await prisma.$transaction(async (tx) => {
-    // ✅ lock-style recheck inside transaction
+    //  lock-style recheck inside transaction
     const freshTrip = await tx.trip.findUnique({
       where: { id: tripId, matchCompleted: true },
     });

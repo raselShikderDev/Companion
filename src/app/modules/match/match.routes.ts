@@ -66,7 +66,7 @@ router.post(
   matchController.createMatch
 );
 
-// Update match status (ACCEPT / REJECT)
+// Update match status (ACCEPT / REJECT / COMPLETE)
 router.patch(
   "/update-status/:id",
   validateRequest(updateMatchStatusSchema),
