@@ -12,7 +12,6 @@ import { clearAuthCookie, setAuthCookie } from "../../helper/authCookie";
 const login = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const userTokens = await authService.login(req.body);
-    console.log({ userTokens });
 
     if (!userTokens.accessToken && !userTokens.refreshToken) {
       throw new customError(StatusCodes.BAD_REQUEST, "Login failed");

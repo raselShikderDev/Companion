@@ -16,7 +16,6 @@ import { safeUser } from "../../helper/safeUser";
 
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
-console.log({payload});
 
   const { email } = payload
 
@@ -41,7 +40,6 @@ console.log({payload});
         role: Role.EXPLORER,
       },
     });
-    console.log({ user });
 
     //  Create explorer profile
     const explorer = await tx.explorer.create({

@@ -169,8 +169,7 @@ const updateMatchStatus = async (
 
   // ACCEPT / REJECT — recipient only
   if (
-    input.status === MatchStatus.ACCEPTED ||
-    input.status === MatchStatus.REJECTED
+    input.status === MatchStatus.ACCEPTED
   ) {
     if (!isRecipient) {
       throw new customError(

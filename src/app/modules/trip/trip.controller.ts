@@ -35,7 +35,6 @@ export const updateTrip = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
     const tripId = req.params.id;
     const userId = req.user?.id;
-    console.log({ "req?.user": req?.user });
 
     if (!userId)
       throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
@@ -82,10 +81,8 @@ export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
 export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
-console.log("userid in controller my trips: ", userId);
 
   const myTrips = await TripService.getMyTrips(userId, req.query as Record<string, string>);
-  console.log(myTrips);
 
   sendResponse(res, {
     success: true,
@@ -95,38 +92,7 @@ console.log("userid in controller my trips: ", userId);
     meta: myTrips.meta,
   });
 });
-// export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
-//   const userId = req.user?.id;
-//   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
-//   console.log(req.query);
 
-//   const filters = pick(req.query ?? {}, [
-//     "searchTerm",
-//     "status",
-//     "matchCompleted",
-//   ]);
-
-//   const options = pick(req.query ?? {}, [
-//     "page",
-//     "limit",
-//     "sortBy",
-//     "sortOrder",
-//   ]);
-
-//   console.log({ options });
-//   console.log({ filters });
-
-//   const myTrips = await TripService.getMyTrips(userId, filters, options);
-//   console.log(myTrips);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: StatusCodes.OK,
-//     message: "Your trips fetched successfully",
-//     data: myTrips.data,
-//     meta: myTrips.meta,
-//   });
-// });
 
 // Delete trip
 export const deleteTrip = catchAsync(async (req: Request, res: Response) => {

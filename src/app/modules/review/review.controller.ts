@@ -63,6 +63,20 @@ const getSingleReview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getReviewByMatchId = catchAsync(async (req: Request, res: Response) => {
+  const matchid = req.params.matchid;
+console.log({matchid});
+
+  const review = await ReviewService.getSingleReview(matchid);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Review for match fetched",
+    data: review,
+  });
+});
+
 const updateReview = catchAsync(async (req: Request, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.id as string;
@@ -113,4 +127,5 @@ export const ReviewController = {
   deleteReview,
   getMyReviews,
   adminUpdateStatus,
+  getReviewByMatchId
 };

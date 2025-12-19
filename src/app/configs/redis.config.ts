@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 import { createClient } from 'redis';
 import { envVars } from './envVars';
 

@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
@@ -44,7 +45,7 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
   }
 
   //  4. Match must be ACCEPTED
-  if (match.status !== MatchStatus.ACCEPTED) {
+  if (match.status !== MatchStatus.COMPLETED) {
     throw new customError(
       StatusCodes.BAD_REQUEST,
       "You can only review an accepted match"
@@ -90,20 +91,31 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
   return review;
 };
 
-const getAllReviews = async (query: Record<string, string>) => {
+const getAllReviews = async (query: Record<string, any>) => {
   //   return prisma.review.findMany({
   //     include: { reviewer: true, match: true },
   //   });
-  const builtQuery = prismaQueryBuilder(query, ["comment", "status"]);
+   const builtQuery = prismaQueryBuilder(query, ["status", "comment"]);
+
+ const whereCondition = {
+    ...builtQuery.where,
+  };
+
+ const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
 
   const [metaDataCount, data] = await Promise.all([
-    prisma.review.count({ where: builtQuery.where }),
+    prisma.review.count({ where: whereCondition }),
     prisma.review.findMany({
-      ...builtQuery,
+      where:whereCondition,
       include: {
         reviewer: true,
         match: true,
       },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -117,41 +129,61 @@ const getAllReviews = async (query: Record<string, string>) => {
   };
 };
 
-const getMyReviews = async (userId: string, query: Record<string, string>) => {
+const getMyReviews = async (userId: string, query: Record<string, any>) => {
   const builtQuery = prismaQueryBuilder(query, ["comment", "status"]);
 
   // Fix: wrap inside AND so TypeScript & Prisma accepts it
-  const finalWhere = {
-    AND: [builtQuery.where, { reviewerId: userId }],
+ const whereCondition = {
+    ...builtQuery.where,
+    OR: [builtQuery.where, { reviewerId: userId }],
   };
-
+ const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
   const [metaDataCount, data] = await Promise.all([
-    prisma.review.count({ where: finalWhere }),
+    prisma.review.count({ where: whereCondition }),
 
     prisma.review.findMany({
-      ...builtQuery,
-      where: finalWhere,
+      where: whereCondition,
       include: {
         reviewer: true,
         match: true,
       },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
   return {
     meta: {
       total: metaDataCount,
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
     },
     data,
   };
 };
 
 const getSingleReview = async (id: string) => {
+  console.log({id});
+  
   const review = await prisma.review.findUnique({
     where: { id },
     include: { reviewer: true, match: true },
+  });
+
+  if (!review) {
+    throw new customError(StatusCodes.NOT_FOUND, "Review not found");
+  }
+
+  return review;
+};
+
+const getReviewByMatchId = async (matchId: string) => {
+  const review = await prisma.review.findMany({
+    where: { matchId },
+    include: { reviewer: true, match: true, },
   });
 
   if (!review) {
@@ -246,4 +278,5 @@ export const ReviewService = {
   deleteReview,
   getMyReviews,
   adminUpdateStatus,
+  getReviewByMatchId
 };

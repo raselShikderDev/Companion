@@ -67,11 +67,9 @@ const refreshToken = async (token: string) => {
     let decodedData:JwtPayload | null;
     try {
         decodedData = await verifyJwtToken(token, envVars.JWT_REFRESH_SECRET as string) as JwtPayload;
-
     }
     catch (err) {
       console.log(err);
-      
         throw new Error("You are not authorized!")
     }
 
