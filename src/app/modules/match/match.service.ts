@@ -215,7 +215,7 @@ const updateMatchStatus = async (
 const getSingleMatch = async (id: string) => {
   const match = await prisma.match.findUnique({
     where: { id },
-    include: { requester: true, recipient: true },
+    include: { requester: true, recipient: true, reviews:true, trip:true },
   });
 
   if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");

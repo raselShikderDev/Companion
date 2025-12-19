@@ -84,7 +84,7 @@ router.get(
   matchController.getMyMatches
 );
 
-router.get("/:id", checkAuth(Role.ADMIN), matchController.getSingleMatch);
+router.get("/:id", checkAuth(...Object.values(Role)), matchController.getSingleMatch);
 
 // Delete a match (only requester)
 router.delete(
