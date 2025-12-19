@@ -132,7 +132,7 @@ const updateTrip = async (
 const getTripById = async (tripId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    include: { creator: true },
+    include: { creator: true, matches:true },
   });
   if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   return trip;
