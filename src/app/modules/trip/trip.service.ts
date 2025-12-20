@@ -261,7 +261,6 @@ const updateTripStatus = async (
   userId: string,
   newStatus: TripStatus
 ) => {
-  // 1. Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -270,14 +269,11 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  //  2. Load trip with ACCEPTED matches only
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
     include: {
       matches: {
-        where: {
-          status: MatchStatus.ACCEPTED,
-        },
+        where: { status: MatchStatus.ACCEPTED },
       },
     },
   });
@@ -286,10 +282,8 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   }
 
-  //  3. Must either be:
-  // - trip creator
-  // - OR part of an accepted match
   const isCreator = trip.creatorId === explorer.id;
+
   const isMatchedUser = trip.matches.some(
     (m) => m.requesterId === explorer.id || m.recipientId === explorer.id
   );
@@ -297,48 +291,63 @@ const updateTripStatus = async (
   if (!isCreator && !isMatchedUser) {
     throw new customError(
       StatusCodes.FORBIDDEN,
-      "You are not allowed to complete this trip"
+      "You are not allowed to update this trip"
     );
   }
 
-  //  4. Already completed protection
   if (
     trip.status === TripStatus.COMPLETED ||
     trip.status === TripStatus.CANCELLED
   ) {
     throw new customError(
       StatusCodes.CONFLICT,
-      `Trip is already marked as ${trip.status}`
+      `Trip already marked as ${trip.status}`
     );
   }
 
-  //  5. TRANSACTION-SAFE UPDATE
+  if (trip.matches.length === 0) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Trip has no accepted matches"
+    );
+  }
+
   const updatedTrip = await prisma.$transaction(async (tx) => {
-    //  lock-style recheck inside transaction
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId, matchCompleted: true },
+    const freshTrip = await tx.trip.findFirst({
+      where: { id: tripId },
     });
 
-    if (freshTrip?.status === TripStatus.COMPLETED) {
-      throw new customError(
-        StatusCodes.CONFLICT,
-        "Trip already marked as completed"
-      );
+    if (!freshTrip) {
+      throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
     }
 
-    const result = await tx.trip.update({
+    const tripUpdate = await tx.trip.update({
       where: { id: tripId },
       data: {
         status: newStatus,
-        updatedAt: new Date(),
+        matchCompleted: newStatus === TripStatus.COMPLETED,
       },
     });
 
-    return result;
+    await tx.match.updateMany({
+      where: {
+        tripId,
+        status: MatchStatus.ACCEPTED,
+      },
+      data: {
+        status:
+          newStatus === TripStatus.COMPLETED
+            ? MatchStatus.COMPLETED
+            : MatchStatus.CANCELLED,
+      },
+    });
+
+    return tripUpdate;
   });
 
   return updatedTrip;
 };
+
 
 const getAvailableTrips = async (userId: string, query: any) => {
   const explorer = await prisma.explorer.findFirst({

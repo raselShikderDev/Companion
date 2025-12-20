@@ -235,7 +235,7 @@ const getAllMatches = async (query: Record<string, string>) => {
 
   const matches = await prisma.match.findMany({
     where:whereCondition,
-    include: { requester: true, recipient: true, reviews: true },
+    include: { requester: true, recipient: true, reviews: true, trip:true },
   });
 
   const total = await prisma.match.count({ where: builtQuery.where });
@@ -292,6 +292,8 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
             destination: true,
             image: true,
             status: true,
+            startDate:true,
+            endDate:true,
           },
         },
         requester: {

@@ -6,7 +6,7 @@ import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { CreateReviewInput, UpdateReviewInput } from "./review.interface";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
-import { MatchStatus, ReviewStatus, TripStatus } from "@prisma/client";
+import { MatchStatus, Prisma, ReviewStatus, TripStatus } from "@prisma/client";
 
 const createReview = async (userId: string, data: CreateReviewInput) => {
   const { matchId, rating, comment } = data;
@@ -95,20 +95,20 @@ const getAllReviews = async (query: Record<string, any>) => {
   //   return prisma.review.findMany({
   //     include: { reviewer: true, match: true },
   //   });
-   const builtQuery = prismaQueryBuilder(query, ["status", "comment"]);
+  const builtQuery = prismaQueryBuilder(query, ["status", "comment"]);
 
- const whereCondition = {
+  const whereCondition = {
     ...builtQuery.where,
   };
 
- const page = Number(query.page) || 1;
+  const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
   const [metaDataCount, data] = await Promise.all([
     prisma.review.count({ where: whereCondition }),
     prisma.review.findMany({
-      where:whereCondition,
+      where: whereCondition,
       include: {
         reviewer: true,
         match: true,
@@ -132,14 +132,26 @@ const getAllReviews = async (query: Record<string, any>) => {
 const getMyReviews = async (userId: string, query: Record<string, any>) => {
   const builtQuery = prismaQueryBuilder(query, ["comment", "status"]);
 
+  const match = await prisma.explorer.findUnique({
+    where:{
+    id:userId
+    }
+  })
+console.log({match});
+
   // Fix: wrap inside AND so TypeScript & Prisma accepts it
- const whereCondition = {
+  const whereCondition: Prisma.ReviewWhereInput = {
     ...builtQuery.where,
     OR: [builtQuery.where, { reviewerId: userId }],
   };
- const page = Number(query.page) || 1;
+
+  console.log({ ad: whereCondition.AND });
+  console.log({ or: whereCondition.OR });
+
+  const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
+
   const [metaDataCount, data] = await Promise.all([
     prisma.review.count({ where: whereCondition }),
 
@@ -165,34 +177,61 @@ const getMyReviews = async (userId: string, query: Record<string, any>) => {
   };
 };
 
+// const getSingleReview = async (id: string) => {
+//   console.log({id});
+
+//   const review = await prisma.review.findUnique({
+//     where: { id },
+//     include: { reviewer: true, match: true },
+//   });
+
+//   if (!review) {
+//     throw new customError(StatusCodes.NOT_FOUND, "Review not found");
+//   }
+
+//   return review;
+// };
+
+// const getReviewByMatchId = async (matchId: string) => {
+//   const review = await prisma.review.findMany({
+//     where: { matchId },
+//     include: { reviewer: true, match: true, },
+//   });
+
+//   if (!review) {
+//     throw new customError(StatusCodes.NOT_FOUND, "Review not found");
+//   }
+
+//   return review;
+// };
 const getSingleReview = async (id: string) => {
-  console.log({id});
-  
+  if (!id) throw new customError(StatusCodes.BAD_REQUEST, "ID is required");
+
   const review = await prisma.review.findUnique({
     where: { id },
     include: { reviewer: true, match: true },
   });
 
-  if (!review) {
-    throw new customError(StatusCodes.NOT_FOUND, "Review not found");
-  }
-
+  if (!review) throw new customError(StatusCodes.NOT_FOUND, "Review not found");
   return review;
 };
 
 const getReviewByMatchId = async (matchId: string) => {
-  const review = await prisma.review.findMany({
+  const data = await prisma.review.findMany({
     where: { matchId },
-    include: { reviewer: true, match: true, },
+    include: { reviewer: true, match: true },
   });
 
-  if (!review) {
-    throw new customError(StatusCodes.NOT_FOUND, "Review not found");
+  // Correct check for findMany
+  if (!data || data.length === 0) {
+    throw new customError(
+      StatusCodes.NOT_FOUND,
+      "No reviews found for this match"
+    );
   }
 
-  return review;
+  return data;
 };
-
 const updateReview = async (
   reviewId: string,
   userId: string,
@@ -278,5 +317,5 @@ export const ReviewService = {
   deleteReview,
   getMyReviews,
   adminUpdateStatus,
-  getReviewByMatchId
+  getReviewByMatchId,
 };
