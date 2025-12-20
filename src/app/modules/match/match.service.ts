@@ -140,12 +140,12 @@ const updateMatchStatus = async (
       "You are not part of this match"
     );
   }
- if (MatchStatus.COMPLETED === match.status && input.status === MatchStatus.COMPLETED) {
-      throw new customError(
-        StatusCodes.CONFLICT,
-        "Match is already completed"
-      );
-    }
+  if (
+    MatchStatus.COMPLETED === match.status &&
+    input.status === MatchStatus.COMPLETED
+  ) {
+    throw new customError(StatusCodes.CONFLICT, "Match is already completed");
+  }
   //  Prevent invalid state updates
   if (
     match.status === MatchStatus.REJECTED ||
@@ -168,9 +168,7 @@ const updateMatchStatus = async (
   }
 
   // ACCEPT / REJECT — recipient only
-  if (
-    input.status === MatchStatus.ACCEPTED
-  ) {
+  if (input.status === MatchStatus.ACCEPTED) {
     if (!isRecipient) {
       throw new customError(
         StatusCodes.FORBIDDEN,
@@ -194,7 +192,6 @@ const updateMatchStatus = async (
         "Trip must be completed before marking match as completed"
       );
     }
-
   }
 
   // transaction-safe update
@@ -210,11 +207,10 @@ const updateMatchStatus = async (
   return updatedMatch;
 };
 
-
 const getSingleMatch = async (id: string) => {
   const match = await prisma.match.findUnique({
     where: { id },
-    include: { requester: true, recipient: true, reviews:true, trip:true },
+    include: { requester: true, recipient: true, reviews: true, trip: true },
   });
 
   if (!match) throw new customError(StatusCodes.NOT_FOUND, "Match not found");
@@ -226,16 +222,15 @@ const getSingleMatch = async (id: string) => {
  * Get all matches (admin / public). Include explorer basics.
  */
 const getAllMatches = async (query: Record<string, string>) => {
- const builtQuery = prismaQueryBuilder(query, ["status"]);
+  const builtQuery = prismaQueryBuilder(query, ["status"]);
 
- const whereCondition = {
+  const whereCondition = {
     ...builtQuery.where,
   };
- 
 
   const matches = await prisma.match.findMany({
-    where:whereCondition,
-    include: { requester: true, recipient: true, reviews: true, trip:true },
+    where: whereCondition,
+    include: { requester: true, recipient: true, reviews: true, trip: true },
   });
 
   const total = await prisma.match.count({ where: builtQuery.where });
@@ -254,7 +249,8 @@ const getAllMatches = async (query: Record<string, string>) => {
  * Get matches for the logged-in explorer
  */
 const getMyMatches = async (userId: string, query: Record<string, string>) => {
-   const builtQuery = prismaQueryBuilder(query, ["status"]);
+  const builtQuery = prismaQueryBuilder(query, ["status"]);
+  console.log({ queryStatus: query.status, querySearchTerm: query.searchTerm });
 
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
@@ -274,17 +270,17 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
 
   const whereCondition = {
     ...builtQuery.where,
-   OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
+    OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   };
   console.log({ "query.status": query.status });
-
- 
 
   const [data, total] = await prisma.$transaction([
     prisma.match.findMany({
       where: whereCondition,
       include: {
-        reviews: true,
+        reviews: {
+          include: { reviewer: true },
+        },
         trip: {
           select: {
             id: true,
@@ -292,8 +288,8 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
             destination: true,
             image: true,
             status: true,
-            startDate:true,
-            endDate:true,
+            startDate: true,
+            endDate: true,
           },
         },
         requester: {
@@ -416,18 +412,19 @@ const includePayload = {
  * ACCEPTED MATCHES
  * requester OR recipient === me
  */
-const getAcceptedMatches = async (userId: string, query:  Record<string, string>) => {
+const getAcceptedMatches = async (
+  userId: string,
+  query: Record<string, string>
+) => {
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
-  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  if (!explorer)
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
 
   const { page, limit, skip } = buildPagination(query);
 
   const where: Prisma.MatchWhereInput = {
     status: MatchStatus.ACCEPTED,
-    OR: [
-      { requesterId: explorer.id },
-      { recipientId: explorer.id },
-    ],
+    OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   };
 
   const [data, total] = await prisma.$transaction([
@@ -448,9 +445,13 @@ const getAcceptedMatches = async (userId: string, query:  Record<string, string>
  * SENT REQUESTS
  * requester === me & status = PENDING
  */
-const getSentRequests = async (userId: string, query:  Record<string, string>) => {
+const getSentRequests = async (
+  userId: string,
+  query: Record<string, string>
+) => {
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
-  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  if (!explorer)
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
 
   const { page, limit, skip } = buildPagination(query);
 
@@ -477,9 +478,13 @@ const getSentRequests = async (userId: string, query:  Record<string, string>) =
  * PENDING REQUESTS
  * recipient === me & status = PENDING
  */
-const getPendingRequests = async (userId: string, query:  Record<string, string>) => {
+const getPendingRequests = async (
+  userId: string,
+  query: Record<string, string>
+) => {
   const explorer = await prisma.explorer.findFirst({ where: { userId } });
-  if (!explorer) throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  if (!explorer)
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
 
   const { page, limit, skip } = buildPagination(query);
 
@@ -509,7 +514,7 @@ export const matchService = {
   getMyMatches,
   deleteMatch,
   getSingleMatch,
-   getAcceptedMatches,
+  getAcceptedMatches,
   getSentRequests,
   getPendingRequests,
 };

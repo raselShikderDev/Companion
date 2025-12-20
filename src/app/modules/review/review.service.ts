@@ -132,48 +132,46 @@ const getAllReviews = async (query: Record<string, any>) => {
 const getMyReviews = async (userId: string, query: Record<string, any>) => {
   const builtQuery = prismaQueryBuilder(query, ["comment", "status"]);
 
-  const match = await prisma.explorer.findUnique({
-    where:{
-    id:userId
+   const explorer = await prisma.explorer.findFirst({
+      where: { userId },
+    });
+  
+    if (!explorer) {
+      throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
     }
-  })
-console.log({match});
-
-  // Fix: wrap inside AND so TypeScript & Prisma accepts it
-  const whereCondition: Prisma.ReviewWhereInput = {
-    ...builtQuery.where,
-    OR: [builtQuery.where, { reviewerId: userId }],
-  };
-
-  console.log({ ad: whereCondition.AND });
-  console.log({ or: whereCondition.OR });
 
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const [metaDataCount, data] = await Promise.all([
-    prisma.review.count({ where: whereCondition }),
+  const whereCondition: Prisma.ReviewWhereInput = {
+    AND: [
+      { reviewerId: explorer.id },
+      ...(Object.keys(builtQuery.where).length ? [builtQuery.where] : []),
+    ],
+  };
 
-    prisma.review.findMany({
-      where: whereCondition,
-      include: {
-        reviewer: true,
-        match: true,
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+  const data = await prisma.review.findMany({
+    where: whereCondition,
+    include: {
+      reviewer: true,
+      match: true,
+    },
+    skip,
+    take: limit,
+    orderBy: { createdAt: "desc" },
+  });
 
+  // const data2 = await prisma.review.findMany()
+
+  const total = await prisma.review.count({ where: whereCondition });
   return {
     meta: {
-      total: metaDataCount,
-      page: Number(page) || 1,
-      limit: Number(limit) || 10,
+      page,
+      limit,
+      total,
     },
-    data,
+    data:data,
   };
 };
 
