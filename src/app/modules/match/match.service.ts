@@ -264,15 +264,37 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  // const whereCondition: Prisma.MatchWhereInput = {
+  // const whereCondition = {
+  //   ...builtQuery.where,
   //   OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   // };
 
+//   const whereCondition = {
+//   AND: [
+//     {
+//       OR: [
+//         { requesterId: explorer.id },
+//         { recipientId: explorer.id },
+//       ],
+//     },
+//     ...(Object.keys(builtQuery.where).length
+//       ? [builtQuery.where]
+//       : []),
+//   ],
+// };
+
   const whereCondition = {
-    ...builtQuery.where,
-    OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
+    AND: [
+      {
+        OR: [
+          { requesterId: explorer.id },
+          { recipientId: explorer.id },
+        ],
+      },
+      ...(Object.keys(builtQuery.where).length ? [builtQuery.where] : []),
+    ],
   };
-  console.log({ "query.status": query.status });
+
 
   const [data, total] = await prisma.$transaction([
     prisma.match.findMany({

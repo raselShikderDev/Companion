@@ -1,5 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
-/** biome-ignore-all lint/suspicious/noExplicitAny: <explanation> */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
@@ -155,7 +155,10 @@ const getMyReviews = async (userId: string, query: Record<string, any>) => {
     where: whereCondition,
     include: {
       reviewer: true,
-      match: true,
+      match: {
+        include: { trip: true },
+      },
+      
     },
     skip,
     take: limit,
