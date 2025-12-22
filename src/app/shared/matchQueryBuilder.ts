@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 export const matchQueryBuilder = (
   query: Record<string, string | number>,
   searchableFields: string[],

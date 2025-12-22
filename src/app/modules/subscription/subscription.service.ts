@@ -1,6 +1,11 @@
 // src/app/modules/subscription/subscription.service.ts
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
+/** biome-ignore-all lint/style/useTemplate: > */
+/** biome-ignore-all assist/source/organizeImports: > */
+/** biome-ignore-all lint/style/useImportType: > */
 import { Prisma, PaymentStatus, SubscriptionPlan } from "@prisma/client";
 import fetch from "node-fetch";
+// biome-ignore lint/style/useNodejsImportProtocol: >
 import crypto from "crypto";
 import { prisma } from "../../configs/db.config";
 import { CreatePaymentInput, CreateSubscriptionInput } from "./subscription.interface";

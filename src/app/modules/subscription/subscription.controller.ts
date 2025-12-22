@@ -1,6 +1,8 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import { Request, Response } from "express";
 import catchAsync from "../../shared/catchAsync";
-import { initiatePaymentSchema, paymentCallbackSchema, createSubscriptionSchema } from "./subscription.validation";
+import { initiatePaymentSchema, createSubscriptionSchema } from "./subscription.validation";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
@@ -70,8 +72,8 @@ const getSingleSubscription = catchAsync(async (req: Request, res: Response) => 
 });
 
 const getMySubscription = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id!;
-  const data = await subscriptionService.getMySubscription(userId);
+  const userId = req.user?.id;
+  const data = await subscriptionService.getMySubscription(userId as string);
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

@@ -5,7 +5,6 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { createTripInput, UpdateTripInput } from "./trip.interface";
-import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { MatchStatus, TripStatus } from "@prisma/client";
 import { matchQueryBuilder } from "../../shared/matchQueryBuilder";
 
