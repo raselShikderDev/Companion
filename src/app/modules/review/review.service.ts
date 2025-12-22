@@ -178,6 +178,25 @@ const getMyReviews = async (userId: string, query: Record<string, any>) => {
   };
 };
 
+
+const getReviewByMatchId = async (matchId: string) => {
+  const data = await prisma.review.findMany({
+    where: { matchId },
+    include: { reviewer: true, match: true },
+  });
+
+  // Correct check for findMany
+  if (!data || data.length === 0) {
+    throw new customError(
+      StatusCodes.NOT_FOUND,
+      "No reviews found for this match"
+    );
+  }
+
+  return data;
+};
+
+
 // const getSingleReview = async (id: string) => {
 //   console.log({id});
 
@@ -217,22 +236,6 @@ const getSingleReview = async (id: string) => {
   return review;
 };
 
-const getReviewByMatchId = async (matchId: string) => {
-  const data = await prisma.review.findMany({
-    where: { matchId },
-    include: { reviewer: true, match: true },
-  });
-
-  // Correct check for findMany
-  if (!data || data.length === 0) {
-    throw new customError(
-      StatusCodes.NOT_FOUND,
-      "No reviews found for this match"
-    );
-  }
-
-  return data;
-};
 const updateReview = async (
   reviewId: string,
   userId: string,

@@ -29,6 +29,9 @@ export const prismaQueryBuilder = (
   const endDate = filters.endDate;
   delete filters.startDate;
   delete filters.endDate;
+  console.log({startDate});
+  console.log({endDate});
+  
 
   const searchConditions =
     searchTerm && searchableFields.length
@@ -60,6 +63,9 @@ export const prismaQueryBuilder = (
           },
         }
       : {};
+
+      console.log({dateConditions:dateConditions.trip});
+      
 
   return {
     where: {

@@ -82,6 +82,9 @@ import { TripStatus } from "@prisma/client";
   const userId = req.user?.id;
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 
+  console.log({"queryStatus:":req.query.status});
+  
+
   const myTrips = await TripService.getMyTrips(userId, req.query as Record<string, string>);
 
   sendResponse(res, {

@@ -3,8 +3,7 @@
 import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
-import { UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus, Prisma, TripStatus } from "@prisma/client";
+import { MatchStatus, Prisma } from "@prisma/client";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 const createMatch = async (requesterUserId: string, tripId: string) => {
@@ -299,6 +298,9 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
     ],
   };
 
+  console.log({whereCondition:whereCondition.AND});
+  
+
   const [data, total] = await prisma.$transaction([
     prisma.match.findMany({
       where: whereCondition,
@@ -306,17 +308,7 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
         reviews: {
           include: { reviewer: true },
         },
-        trip: {
-          select: {
-            id: true,
-            title: true,
-            destination: true,
-            image: true,
-            status: true,
-            startDate: true,
-            endDate: true,
-          },
-        },
+        trip: true,
         requester: {
           select: {
             id: true,
