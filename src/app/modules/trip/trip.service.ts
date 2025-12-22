@@ -132,7 +132,7 @@ const updateTrip = async (
 const getTripById = async (tripId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    include: { creator: true, matches:true },
+    include: { creator: true, matches: true },
   });
   if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   return trip;
@@ -169,31 +169,53 @@ const getAllTrips = async (query: Record<string, string>) => {
   };
 };
 
-const getAllAvailableTrips = async (query: Record<string, string>) => {
+const getAllAvailableTrips = async (
+  userId: string,
+  query: Record<string, string>
+) => {
   const builtQuery = prismaQueryBuilder(query, [
     "title",
     "destination",
+    "description",
+    "departureLocation",
     "budget",
     "status",
-    "matchCompleted",
   ]);
 
+  // fetch user + explorer in one go
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { explorer: true },
+  });
+
+  if (!user || !user.explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  const explorerId = user.explorer.id;
+
+  // final where condition
   const whereCondition = {
     ...builtQuery.where,
     matchCompleted: false,
+    creatorId: {
+      not: explorerId,
+    },
   };
 
-  const trips = await prisma.trip.findMany({
-    where: whereCondition,
-    include: { creator: true },
-    orderBy: builtQuery.orderBy,
-    skip: builtQuery.skip,
-    take: builtQuery.take,
-  });
-
-  const total = await prisma.trip.count({
-    where: whereCondition,
-  });
+  // run in parallel
+  const [trips, total] = await Promise.all([
+    prisma.trip.findMany({
+      where: whereCondition,
+      include: { creator: true },
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.limit,
+    }),
+    prisma.trip.count({
+      where: whereCondition,
+    }),
+  ]);
 
   return {
     data: trips,
@@ -206,22 +228,36 @@ const getAllAvailableTrips = async (query: Record<string, string>) => {
 };
 
 const getMyTrips = async (userId: string, query: Record<string, string>) => {
+  // build query: search + filters + date range + pagination
   const builtQuery = prismaQueryBuilder(query, [
     "title",
     "destination",
+    "description",
+    "departureLocation",
+    "budget",
     "status",
-    "matchCompleted",
   ]);
 
+  // restrict trips to the logged-in user's explorer
   const whereCondition = {
-    ...builtQuery.where,
-    creator: { userId },
+    AND: [
+      builtQuery.where,
+      {
+        creator: {
+          user: {
+            id: userId,
+          },
+        },
+      },
+    ],
   };
 
   const [trips, total] = await prisma.$transaction([
     prisma.trip.findMany({
       where: whereCondition,
-      include: { creator: true },
+      include: {
+        creator: true,
+      },
       orderBy: builtQuery.orderBy,
       skip: builtQuery.skip,
       take: builtQuery.take,
@@ -347,7 +383,6 @@ const updateTripStatus = async (
 
   return updatedTrip;
 };
-
 
 const getAvailableTrips = async (userId: string, query: any) => {
   const explorer = await prisma.explorer.findFirst({
