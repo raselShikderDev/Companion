@@ -357,28 +357,30 @@ const updateTripStatus = async (
       throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
     }
 
-    const tripUpdate = await tx.trip.update({
+    const tripUpdated = await tx.trip.update({
       where: { id: tripId },
+      include:{
+        matches:true
+      },
       data: {
         status: newStatus,
-        matchCompleted: newStatus === TripStatus.COMPLETED,
+        matchCompleted: newStatus  === TripStatus.COMPLETED,
       },
     });
 
-    await tx.match.updateMany({
-      where: {
-        tripId,
-        status: MatchStatus.ACCEPTED,
-      },
-      data: {
-        status:
-          newStatus === TripStatus.COMPLETED
-            ? MatchStatus.COMPLETED
-            : MatchStatus.CANCELLED,
-      },
-    });
+    if (tripUpdated.status === TripStatus.COMPLETED) {
+      await tx.match.update({
+        where:{
+          id:tripUpdated.matches.filter((match)=> match.tripId === tripUpdated.id)[0].id
+        },
+        data:{
+          status:MatchStatus.COMPLETED,
+        }
+      })
+    }
 
-    return tripUpdate;
+   
+    return tripUpdated;
   });
 
   return updatedTrip;

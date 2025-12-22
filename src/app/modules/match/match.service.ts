@@ -4,7 +4,7 @@ import { prisma } from "../../configs/db.config";
 import { StatusCodes } from "http-status-codes";
 import customError from "../../shared/customError";
 import { UpdateMatchStatusInput } from "./match.interface";
-import { MatchStatus, Prisma } from "@prisma/client";
+import { MatchStatus, Prisma, TripStatus } from "@prisma/client";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 
 const createMatch = async (requesterUserId: string, tripId: string) => {
@@ -109,9 +109,11 @@ const createMatch = async (requesterUserId: string, tripId: string) => {
 const updateMatchStatus = async (
   matchId: string,
   actingUserId: string,
-  input: UpdateMatchStatusInput
+  input: {
+    status:  MatchStatus
+  }
 ) => {
-  //  Convert USER → EXPLORER
+  // 1. USER → EXPLORER
   const actingExplorer = await prisma.explorer.findFirst({
     where: { userId: actingUserId },
   });
@@ -120,7 +122,7 @@ const updateMatchStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // Fetch Match + Trip
+  // 2. Load match + trip
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: { trip: true },
@@ -133,20 +135,15 @@ const updateMatchStatus = async (
   const isRequester = match.requesterId === actingExplorer.id;
   const isRecipient = match.recipientId === actingExplorer.id;
 
-  //  Must be part of the match
+  // 3. Must be part of match
   if (!isRequester && !isRecipient) {
     throw new customError(
       StatusCodes.FORBIDDEN,
       "You are not part of this match"
     );
   }
-  if (
-    MatchStatus.COMPLETED === match.status &&
-    input.status === MatchStatus.COMPLETED
-  ) {
-    throw new customError(StatusCodes.CONFLICT, "Match is already completed");
-  }
-  //  Prevent invalid state updates
+
+  // 4. Terminal states — no changes allowed
   if (
     match.status === MatchStatus.REJECTED ||
     match.status === MatchStatus.CANCELLED
@@ -157,19 +154,20 @@ const updateMatchStatus = async (
     );
   }
 
-  //  CANCEL — requester only
-  if (input.status === MatchStatus.CANCELLED) {
-    if (!isRequester) {
-      throw new customError(
-        StatusCodes.FORBIDDEN,
-        "Only requester can cancel the match"
-      );
-    }
+  // 5. CANCEL — requester only
+  if (input.status === MatchStatus.CANCELLED && !isRequester) {
+    throw new customError(
+      StatusCodes.FORBIDDEN,
+      "Only requester can cancel the match"
+    );
   }
 
-  // ACCEPT / REJECT — recipient only
-  if (input.status === MatchStatus.ACCEPTED) {
-    if (!isRecipient) {
+  // 6. ACCEPT / REJECT — trip owner only
+  if (
+    input.status === MatchStatus.ACCEPTED ||
+    input.status === MatchStatus.REJECTED
+  ) {
+    if (!isRecipient || match.trip.creatorId !== actingExplorer.id) {
       throw new customError(
         StatusCodes.FORBIDDEN,
         "Only trip owner can accept or reject the match"
@@ -177,7 +175,7 @@ const updateMatchStatus = async (
     }
   }
 
-  // COMPLETED — STRICT CONDITIONS
+  // 7. COMPLETED — strict rules
   if (input.status === MatchStatus.COMPLETED) {
     if (match.status !== MatchStatus.ACCEPTED) {
       throw new customError(
@@ -189,23 +187,32 @@ const updateMatchStatus = async (
     if (!match.trip.matchCompleted) {
       throw new customError(
         StatusCodes.BAD_REQUEST,
-        "Trip must be completed before marking match as completed"
+        "Trip must be completed first"
       );
     }
   }
 
-  // transaction-safe update
+  // 8. Transaction-safe update
   const updatedMatch = await prisma.$transaction(async (tx) => {
-    return tx.match.update({
+    const updated = await tx.match.update({
       where: { id: matchId },
-      data: {
-        status: input.status,
-      },
+      data: { status: input.status },
     });
+
+    /**
+     * IMPORTANT:
+     * - ACCEPT → NO trip update (by your design)
+     * - REJECT / CANCEL → trip becomes available automatically
+     *   because availability is inferred from ACCEPTED matches
+     */
+
+    return updated; // ✅ REQUIRED
   });
 
   return updatedMatch;
 };
+
+
 
 const getSingleMatch = async (id: string) => {
   const match = await prisma.match.findUnique({
@@ -250,7 +257,7 @@ const getAllMatches = async (query: Record<string, string>) => {
  */
 const getMyMatches = async (userId: string, query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, ["status"]);
-  console.log({ queryStatus: query.status, querySearchTerm: query.searchTerm });
+  // console.log({ queryStatus: query.status, querySearchTerm: query.searchTerm });
 
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
@@ -269,32 +276,28 @@ const getMyMatches = async (userId: string, query: Record<string, string>) => {
   //   OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
   // };
 
-//   const whereCondition = {
-//   AND: [
-//     {
-//       OR: [
-//         { requesterId: explorer.id },
-//         { recipientId: explorer.id },
-//       ],
-//     },
-//     ...(Object.keys(builtQuery.where).length
-//       ? [builtQuery.where]
-//       : []),
-//   ],
-// };
+  //   const whereCondition = {
+  //   AND: [
+  //     {
+  //       OR: [
+  //         { requesterId: explorer.id },
+  //         { recipientId: explorer.id },
+  //       ],
+  //     },
+  //     ...(Object.keys(builtQuery.where).length
+  //       ? [builtQuery.where]
+  //       : []),
+  //   ],
+  // };
 
   const whereCondition = {
     AND: [
       {
-        OR: [
-          { requesterId: explorer.id },
-          { recipientId: explorer.id },
-        ],
+        OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
       },
       ...(Object.keys(builtQuery.where).length ? [builtQuery.where] : []),
     ],
   };
-
 
   const [data, total] = await prisma.$transaction([
     prisma.match.findMany({
