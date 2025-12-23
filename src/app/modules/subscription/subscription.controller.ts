@@ -29,21 +29,7 @@ console.log(result);
   });
 });
 
-// POST /subscriptions/initiate
-// const initiatePayment = catchAsync(async (req: Request, res: Response) => {
-//   const userId = req.user?.id;
-//   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 
-//   const input = initiatePaymentSchema.parse(req.body);
-//   const result = await subscriptionService.initiatePayment(userId, input);
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: StatusCodes.OK,
-//     message: "Payment initiated. Redirect user to gateway.",
-//     data: result,
-//   });
-// });
 
 // POST /subscriptions/webhook/sslcommerz  (IPN endpoint)
 const sslcommerzWebhook = catchAsync(async (req: Request, res: Response) => {
@@ -88,7 +74,6 @@ const getMySubscription = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const subscriptionController = {
-
   sslcommerzWebhook,
   createSubscription,
   getMySubscription,

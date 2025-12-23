@@ -27,12 +27,6 @@ const createSubscription = async (userId: string, plan: any) => {
   }
 
   const planCfg = PLANS[plan.plan as SubscriptionPlan];
-  // console.log({planCfg});
-  // console.log({PLANS});
-  // console.log({"plan":plan.plan});
-  // console.log({planbyAter:`PLANS.${plan.plan as SubscriptionPlan}`});
-
-  // console.log({"!planCfg || plan === SubscriptionPlan.FREE":!planCfg || plan === SubscriptionPlan.FREE});
 
   if (!planCfg || plan === SubscriptionPlan.FREE) {
     throw new customError(StatusCodes.BAD_REQUEST, "Invalid plan");
@@ -41,14 +35,16 @@ const createSubscription = async (userId: string, plan: any) => {
   const transactionId = crypto.randomUUID();
   const amount = planCfg.priceBDT;
 
-  const newPaymentPayload = {
-    explorerId: explorer.id,
-    planName: plan.plan,
-    amount,
-    gateway: "SSLCOMMERZ",
-    transactionId,
-    rawResponse: toJsonValue({ createdAt: new Date().toISOString() }),
-  };
+const newPaymentPayload = {
+  explorerId: explorer.id,
+  planName: plan.plan,
+  amount,
+  gateway: "SSLCOMMERZ",
+  transactionId,
+  status: PaymentStatus.PENDING,
+  rawResponse: toJsonValue({ createdAt: new Date().toISOString() }),
+};
+
 
   //  TRANSACTION: create ONE payment only
   const payment = await prisma.$transaction(async (tx) => {
@@ -63,12 +59,16 @@ const createSubscription = async (userId: string, plan: any) => {
 
   return {
     paymentId: payment.id,
-    gatewayResponse,
+    paymentUrl:gatewayResponse.GatewayPageURL,
   };
 };
 
+//  "paymentId": "f0cf32d0-cefe-434c-a200-f7a9bdf5bc7b",
+//     "paymentUrl": "https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=37D1262B26F90D091A36D80C98B1B5D5"
+  
+
 const initiatePayment = async (payment: any, explorer: any) => {
-  console.log({ payment, explorer });
+ 
   const user = await prisma.user.findFirst({
     where: {
       id: explorer?.userId,
@@ -83,9 +83,9 @@ const initiatePayment = async (payment: any, explorer: any) => {
     total_amount: payment.amount,
     currency: "BDT",
     tran_id: payment.transactionId,
-    success_url: envVars.SSL.SSL_SUCCESS_BACKEND_URL,
-    fail_url: envVars.SSL.SSL_FAIL_BACKEND_URL,
-    cancel_url: envVars.SSL.SSL_CANCEL_BACKEND_URL,
+    success_url: envVars.SSL.SSL_SUCCESS_FRONTEND_URL,
+    fail_url: envVars.SSL.SSL_FAIL_FRONTEND_URL,
+    cancel_url: envVars.SSL.SSL_CANCEL_FRONTEND_URL,
     ipn_url: envVars.SSL.SSL_IPN_URL,
     cus_name: explorer.fullName,
     cus_email: user.email,
@@ -110,7 +110,7 @@ const initiatePayment = async (payment: any, explorer: any) => {
     ship_country: "N/A",
   };
 
-  console.log({ data });
+
 
   try {
     const response = await axios({
@@ -120,7 +120,7 @@ const initiatePayment = async (payment: any, explorer: any) => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     const resData = response.data;
-    console.log({ resData });
+   
 //  resData: {
 //     status: 'SUCCESS',
 //     failedreason: '',
@@ -238,6 +238,7 @@ const initiatePayment = async (payment: any, explorer: any) => {
 
 const verifyAndFinalizePayment = async (payload: any) => {
   const tranId = payload.tran_id || payload.val_id;
+
   if (!tranId) {
     throw new customError(StatusCodes.BAD_REQUEST, "Missing transaction id");
   }
@@ -249,6 +250,17 @@ const verifyAndFinalizePayment = async (payload: any) => {
   if (!payment) {
     throw new customError(StatusCodes.NOT_FOUND, "Payment not found");
   }
+
+   const explorer = await prisma.explorer.findFirst({
+      where:{
+        id:payment.explorerId
+      }
+    })
+
+     if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
 
   // Prevent double processing
   if (payment.status === PaymentStatus.PAID) {
@@ -276,35 +288,36 @@ const verifyAndFinalizePayment = async (payload: any) => {
     startDate.getTime() + planCfg.durationDays * 86400000
   );
 
-  await prisma.$transaction([
-    prisma.payment.update({
+  await prisma.$transaction(async(tx)=>{
+const updatedPayment = await tx.payment.update({
       where: { id: payment.id },
       data: {
         status: PaymentStatus.PAID,
         rawResponse: toJsonValue(payload),
       },
+    })
+
+   await tx.explorer.update({
+      where:{
+        id:explorer.id
+      }, 
+      data:{
+        isPremium:true,
+      }
     }),
-    prisma.subscription.upsert({
-      where: { explorerId: payment.explorerId },
-      update: {
+    await tx.subscription.create({
+      data:{
+        explorerId:explorer.id,
         planName: payment.planName,
         startDate,
         endDate,
+        paymentId:payment.id,
         isActive: true,
-      },
-      create: {
-        explorerId: payment.explorerId,
-        planName: payment.planName,
-        startDate,
-        endDate,
-        isActive: true,
-      },
-    }),
-    prisma.explorer.update({
-      where: { id: payment.explorerId },
-      data: { isPremium: true },
-    }),
-  ]);
+      }
+    })
+  })
+
+
 
   return { success: true };
 };
@@ -315,10 +328,7 @@ const verifyAndFinalizePayment = async (payload: any) => {
 const handleSslCommerzCallback = verifyAndFinalizePayment;
 
 const getAllSubscription = async (query: Record<string, string>) => {
-  // return prisma.subscription.findMany({
-  //   include: { explorer: true },
-  //   orderBy: { createdAt: "desc" },
-  // });
+
   const { where, take, skip, orderBy } = prismaQueryBuilder(query, [
     "planName",
     "status",
@@ -376,7 +386,7 @@ const getMySubscription = async (userId: string) => {
 };
 
 export const subscriptionService = {
-  initiatePayment,
+
   verifyAndFinalizePayment,
   createSubscription,
   handleSslCommerzCallback,
