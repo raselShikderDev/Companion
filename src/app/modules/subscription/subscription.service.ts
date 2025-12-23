@@ -16,6 +16,7 @@ import { PLANS } from "./plan.config";
 import { toJsonValue } from "../../helper/jasonValueConvertar";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import axios from "axios";
+import { verifySSLCommerzHash } from "../../helper/sslcommerzHash";
 
 /**
  * STEP 1 — Create subscription & initiate payment
@@ -35,15 +36,15 @@ const createSubscription = async (userId: string, plan: any) => {
   const transactionId = crypto.randomUUID();
   const amount = planCfg.priceBDT;
 
-const newPaymentPayload = {
-  explorerId: explorer.id,
-  planName: plan.plan,
-  amount,
-  gateway: "SSLCOMMERZ",
-  transactionId,
-  status: PaymentStatus.PENDING,
-  rawResponse: toJsonValue({ createdAt: new Date().toISOString() }),
-};
+  const newPaymentPayload = {
+    explorerId: explorer.id,
+    planName: plan.plan,
+    amount,
+    gateway: "SSLCOMMERZ",
+    transactionId,
+    status: PaymentStatus.PENDING,
+    rawResponse: toJsonValue({ createdAt: new Date().toISOString() }),
+  };
 
 
   //  TRANSACTION: create ONE payment only
@@ -59,16 +60,16 @@ const newPaymentPayload = {
 
   return {
     paymentId: payment.id,
-    paymentUrl:gatewayResponse.GatewayPageURL,
+    paymentUrl: gatewayResponse.GatewayPageURL,
   };
 };
 
 //  "paymentId": "f0cf32d0-cefe-434c-a200-f7a9bdf5bc7b",
 //     "paymentUrl": "https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=37D1262B26F90D091A36D80C98B1B5D5"
-  
+
 
 const initiatePayment = async (payment: any, explorer: any) => {
- 
+
   const user = await prisma.user.findFirst({
     where: {
       id: explorer?.userId,
@@ -120,113 +121,113 @@ const initiatePayment = async (payment: any, explorer: any) => {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
     const resData = response.data;
-   
-//  resData: {
-//     status: 'SUCCESS',
-//     failedreason: '',
-//     sessionkey: '72110146191078463D7FA938FDA9EC81',
-//     gw: {
-//       visa: 'city_visa,ebl_visa,visacard',
-//       master: 'city_master,ebl_master,mastercard',
-//       amex: 'city_amex,amexcard',
-//       othercards: 'qcash,fastcash',
-//       internetbanking: 'city,bankasia,ibbl,mtbl',
-//       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
-//     },
-//     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
-//     directPaymentURLBank: '',
-//     directPaymentURLCard: '',
-//     directPaymentURL: '',
-//     redirectGatewayURLFailed: '',
-//     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
-//     storeBanner: '',
-//     storeLogo: '',
-//     desc: [
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object]
-//     ],
-//     is_direct_pay_enable: '0'
-//   }
-// }
-// {
-//   gatewayResponse: {
-//     status: 'SUCCESS',
-//     failedreason: '',
-//     sessionkey: '72110146191078463D7FA938FDA9EC81',
-//     gw: {
-//       visa: 'city_visa,ebl_visa,visacard',
-//       master: 'city_master,ebl_master,mastercard',
-//       amex: 'city_amex,amexcard',
-//       othercards: 'qcash,fastcash',
-//       internetbanking: 'city,bankasia,ibbl,mtbl',
-//       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
-//     },
-//     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
-//     directPaymentURLBank: '',
-//     directPaymentURLCard: '',
-//     directPaymentURL: '',
-//     redirectGatewayURLFailed: '',
-//     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
-//     storeBanner: '',
-//     storeLogo: '',
-//     desc: [
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object]
-//     ],
-//     is_direct_pay_enable: '0'
-//   }
-// }
-// results
-// {
-//   paymentId: '6c9705be-1e19-4c49-9946-2e9cc598bf0a',
-//   gatewayResponse: {
-//     status: 'SUCCESS',
-//     failedreason: '',
-//     sessionkey: '72110146191078463D7FA938FDA9EC81',
-//     gw: {
-//       visa: 'city_visa,ebl_visa,visacard',
-//       master: 'city_master,ebl_master,mastercard',
-//       amex: 'city_amex,amexcard',
-//       othercards: 'qcash,fastcash',
-//       internetbanking: 'city,bankasia,ibbl,mtbl',
-//       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
-//     },
-//     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
-//     directPaymentURLBank: '',
-//     directPaymentURLCard: '',
-//     directPaymentURL: '',
-//     redirectGatewayURLFailed: '',
-//     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
-//     storeBanner: '',
-//     storeLogo: '',
-//     desc: [
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object], [Object],
-//       [Object]
-//     ],
-//     is_direct_pay_enable: '0'
-//   }
-// }
+
+    //  resData: {
+    //     status: 'SUCCESS',
+    //     failedreason: '',
+    //     sessionkey: '72110146191078463D7FA938FDA9EC81',
+    //     gw: {
+    //       visa: 'city_visa,ebl_visa,visacard',
+    //       master: 'city_master,ebl_master,mastercard',
+    //       amex: 'city_amex,amexcard',
+    //       othercards: 'qcash,fastcash',
+    //       internetbanking: 'city,bankasia,ibbl,mtbl',
+    //       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
+    //     },
+    //     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
+    //     directPaymentURLBank: '',
+    //     directPaymentURLCard: '',
+    //     directPaymentURL: '',
+    //     redirectGatewayURLFailed: '',
+    //     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
+    //     storeBanner: '',
+    //     storeLogo: '',
+    //     desc: [
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object]
+    //     ],
+    //     is_direct_pay_enable: '0'
+    //   }
+    // }
+    // {
+    //   gatewayResponse: {
+    //     status: 'SUCCESS',
+    //     failedreason: '',
+    //     sessionkey: '72110146191078463D7FA938FDA9EC81',
+    //     gw: {
+    //       visa: 'city_visa,ebl_visa,visacard',
+    //       master: 'city_master,ebl_master,mastercard',
+    //       amex: 'city_amex,amexcard',
+    //       othercards: 'qcash,fastcash',
+    //       internetbanking: 'city,bankasia,ibbl,mtbl',
+    //       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
+    //     },
+    //     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
+    //     directPaymentURLBank: '',
+    //     directPaymentURLCard: '',
+    //     directPaymentURL: '',
+    //     redirectGatewayURLFailed: '',
+    //     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
+    //     storeBanner: '',
+    //     storeLogo: '',
+    //     desc: [
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object]
+    //     ],
+    //     is_direct_pay_enable: '0'
+    //   }
+    // }
+    // results
+    // {
+    //   paymentId: '6c9705be-1e19-4c49-9946-2e9cc598bf0a',
+    //   gatewayResponse: {
+    //     status: 'SUCCESS',
+    //     failedreason: '',
+    //     sessionkey: '72110146191078463D7FA938FDA9EC81',
+    //     gw: {
+    //       visa: 'city_visa,ebl_visa,visacard',
+    //       master: 'city_master,ebl_master,mastercard',
+    //       amex: 'city_amex,amexcard',
+    //       othercards: 'qcash,fastcash',
+    //       internetbanking: 'city,bankasia,ibbl,mtbl',
+    //       mobilebanking: 'dbblmobilebanking,bkash,abbank,ibbl'
+    //     },
+    //     redirectGatewayURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/bankgw/indexhtml.php?mamount=499.00&ssl_id=251223203600rvFUfBeDrvKCpIc&Q=REDIRECT&SESSIONKEY=72110146191078463D7FA938FDA9EC81&tran_type=success&cardname=',
+    //     directPaymentURLBank: '',
+    //     directPaymentURLCard: '',
+    //     directPaymentURL: '',
+    //     redirectGatewayURLFailed: '',
+    //     GatewayPageURL: 'https://sandbox.sslcommerz.com/gwprocess/v3/gw.php?Q=PAY&SESSIONKEY=72110146191078463D7FA938FDA9EC81',
+    //     storeBanner: '',
+    //     storeLogo: '',
+    //     desc: [
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object], [Object],
+    //       [Object]
+    //     ],
+    //     is_direct_pay_enable: '0'
+    //   }
+    // }
     return resData;
   } catch (error: any) {
     if (envVars.NODE_ENV === "Development") {
@@ -237,6 +238,20 @@ const initiatePayment = async (payment: any, explorer: any) => {
 };
 
 const verifyAndFinalizePayment = async (payload: any) => {
+
+
+  const isValidHash = verifySSLCommerzHash(
+    payload,
+    envVars.SSL.SSL_SECRET_KEY
+  );
+
+  if (!isValidHash) {
+    throw new customError(
+      StatusCodes.UNAUTHORIZED,
+      "Invalid payment signature"
+    );
+  }
+
   const tranId = payload.tran_id || payload.val_id;
 
   if (!tranId) {
@@ -251,13 +266,13 @@ const verifyAndFinalizePayment = async (payload: any) => {
     throw new customError(StatusCodes.NOT_FOUND, "Payment not found");
   }
 
-   const explorer = await prisma.explorer.findFirst({
-      where:{
-        id:payment.explorerId
-      }
-    })
+  const explorer = await prisma.explorer.findFirst({
+    where: {
+      id: payment.explorerId
+    }
+  })
 
-     if (!explorer) {
+  if (!explorer) {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
@@ -288,38 +303,67 @@ const verifyAndFinalizePayment = async (payload: any) => {
     startDate.getTime() + planCfg.durationDays * 86400000
   );
 
-  await prisma.$transaction(async(tx)=>{
-const updatedPayment = await tx.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentStatus.PAID,
-        rawResponse: toJsonValue(payload),
-      },
-    })
+  // const subs = await prisma.$transaction(async (tx) => {
+  //   await tx.payment.update({
+  //     where: { id: payment.id },
+  //     data: {
+  //       status: PaymentStatus.PAID,
+  //       rawResponse: toJsonValue(payload),
+  //     },
+  //   })
 
-   await tx.explorer.update({
-      where:{
-        id:explorer.id
-      }, 
-      data:{
-        isPremium:true,
-      }
-    }),
-    await tx.subscription.create({
-      data:{
-        explorerId:explorer.id,
-        planName: payment.planName,
-        startDate,
-        endDate,
-        paymentId:payment.id,
-        isActive: true,
-      }
-    })
-  })
+  //   await tx.explorer.update({
+  //     where: {
+  //       id: explorer.id
+  //     },
+  //     data: {
+  //       isPremium: true,
+  //     }
+  //   }),
+  //     await tx.subscription.create({
+  //       data: {
+  //         explorerId: explorer.id,
+  //         planName: payment.planName,
+  //         startDate,
+  //         endDate,
+  //         paymentId: payment.id,
+  //         isActive: true,
+  //       }
+  //     })
+  //   return await tx.subscription.findFirst({ where: { explorerId: explorer.id } })
+  // })
+
+  const subs = await prisma.$transaction(async (tx) => {
+  await tx.payment.update({
+    where: { id: payment.id },
+    data: {
+      status: PaymentStatus.PAID,
+      rawResponse: toJsonValue(payload),
+    },
+  });
+
+  await tx.explorer.update({
+    where: { id: explorer.id },
+    data: { isPremium: true },
+  });
+
+  return await tx.subscription.create({
+    data: {
+      explorerId: explorer.id,
+      planName: payment.planName,
+      startDate,
+      endDate,
+      paymentId: payment.id,
+      isActive: true,
+    },
+  });
+});
 
 
+  console.log(subs);
 
-  return { success: true };
+
+  return { success: true, subs };
 };
 
 /**
