@@ -4,18 +4,18 @@ import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
 import { subscriptionController } from "./subscription.controller";
 import { validateRequest } from "../../middlewares/validateRequest";
-import { createSubscriptionSchema, initiatePaymentSchema } from "./subscription.validation";
+import { createSubscriptionSchema } from "./subscription.validation";
 
 const router = Router();
 
 
-router.get("/", checkAuth(Role.ADMIN), subscriptionController.getAllSubscription);
-router.get("/:id", checkAuth(Role.ADMIN), subscriptionController.getSingleSubscription);
-router.get("/my-subscripion", checkAuth(Role.EXPLORER, Role.ADMIN), subscriptionController.getMySubscription);
+router.get("/", checkAuth(...Object.values(Role)), subscriptionController.getAllSubscription);
+router.get("/:id", checkAuth(...Object.values(Role)), subscriptionController.getSingleSubscription);
+router.get("/my-subscripion", checkAuth(...Object.values(Role)), subscriptionController.getMySubscription);
 
-router.post("/initiate", checkAuth(Role.EXPLORER), validateRequest(initiatePaymentSchema), subscriptionController.initiatePayment);
+// router.post("/initiate", checkAuth(...Object.values(Role)), validateRequest(initiatePaymentSchema), subscriptionController.initiatePayment);
 
-router.post("/create", checkAuth(Role.EXPLORER), validateRequest(createSubscriptionSchema), subscriptionController.createSubscription);
+router.post("/create", checkAuth(...Object.values(Role)), validateRequest(createSubscriptionSchema), subscriptionController.createSubscription);
 
 // SSLCommerz webhook endpoint (provider will call)
 router.post("/webhook/sslcommerz", subscriptionController.sslcommerzWebhook);

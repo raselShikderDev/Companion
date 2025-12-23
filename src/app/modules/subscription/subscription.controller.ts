@@ -2,43 +2,48 @@
 /** biome-ignore-all assist/source/organizeImports: > */
 import { Request, Response } from "express";
 import catchAsync from "../../shared/catchAsync";
-import { initiatePaymentSchema, createSubscriptionSchema } from "./subscription.validation";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
-import customError from "../../shared/customError";
 import { subscriptionService } from "./subscription.service";
+import customError from "../../shared/customError";
 
 // POST /subscriptions/create
 const createSubscription = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) return res.status(StatusCodes.UNAUTHORIZED).json({ message: "Unauthorized" });
+  if (!userId) {
+    throw new customError(StatusCodes.UNAUTHORIZED, "You not authorized")
+  }
+console.log("In create subscription controller");
+console.log(req.body);
 
-  const input = createSubscriptionSchema.parse(req.body);
-  const result = await subscriptionService.createSubscription(userId, input);
+  const result = await subscriptionService.createSubscription(userId as string, req.body );
+  console.log("results");
+  
+console.log(result);
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.CREATED,
     message: "Subscription payment session created",
-    data: { payment: result.payment, sslPayload: result.sslPayload },
+    data: result,
   });
 });
 
 // POST /subscriptions/initiate
-const initiatePayment = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+// const initiatePayment = catchAsync(async (req: Request, res: Response) => {
+//   const userId = req.user?.id;
+//   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
 
-  const input = initiatePaymentSchema.parse(req.body);
-  const result = await subscriptionService.initiatePayment(userId, input);
+//   const input = initiatePaymentSchema.parse(req.body);
+//   const result = await subscriptionService.initiatePayment(userId, input);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: StatusCodes.OK,
-    message: "Payment initiated. Redirect user to gateway.",
-    data: result,
-  });
-});
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: StatusCodes.OK,
+//     message: "Payment initiated. Redirect user to gateway.",
+//     data: result,
+//   });
+// });
 
 // POST /subscriptions/webhook/sslcommerz  (IPN endpoint)
 const sslcommerzWebhook = catchAsync(async (req: Request, res: Response) => {
@@ -83,7 +88,7 @@ const getMySubscription = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const subscriptionController = {
-  initiatePayment,
+
   sslcommerzWebhook,
   createSubscription,
   getMySubscription,

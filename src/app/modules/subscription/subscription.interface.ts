@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/useImportType: > */
 import { SubscriptionPlan } from "@prisma/client";
 
 export interface CreatePaymentInput {

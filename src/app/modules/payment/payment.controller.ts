@@ -1,3 +1,5 @@
+/** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all assist/source/organizeImports: > */
 import catchAsync from "../../shared/catchAsync";
 import { Request, Response } from "express";
 import sendResponse from "../../shared/sendResponse";
@@ -17,8 +19,8 @@ const getSinglePayment = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getMyPayments = catchAsync(async (req: Request, res: Response) => {
-    const userId = req.user?.id!;
-    const data = await PaymentService.getMyPayments(userId);
+    const userId = req.user?.id;
+    const data = await PaymentService.getMyPayments(userId as string);
     sendResponse(res, { success: true, statusCode: StatusCodes.OK, message: "Your payments", data });
 });
 
