@@ -40,6 +40,24 @@ import { matchController } from "./match.controller";
 
 const router = Router();
 
+router.get(
+  "/accepted",
+  checkAuth(Role.EXPLORER),
+  matchController.getAcceptedMatches
+);
+
+router.get(
+  "/sent",
+  checkAuth(Role.EXPLORER),
+  matchController.getSentRequests
+);
+
+router.get(
+  "/pending",
+  checkAuth(Role.EXPLORER),
+  matchController.getPendingRequests
+);
+
 // Create a match request
 router.post(
   "/create",
@@ -48,7 +66,7 @@ router.post(
   matchController.createMatch
 );
 
-// Update match status (ACCEPT / REJECT)
+// Update match status (ACCEPT / REJECT / COMPLETE)
 router.patch(
   "/update-status/:id",
   validateRequest(updateMatchStatusSchema),
@@ -66,7 +84,7 @@ router.get(
   matchController.getMyMatches
 );
 
-router.get("/:id", checkAuth(Role.ADMIN), matchController.getSingleMatch);
+router.get("/:id", checkAuth(...Object.values(Role)), matchController.getSingleMatch);
 
 // Delete a match (only requester)
 router.delete(

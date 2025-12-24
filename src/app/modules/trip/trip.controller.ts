@@ -10,7 +10,7 @@ import customError from "../../shared/customError";
 import { TripStatus } from "@prisma/client";
 
 // Create trip
-export const createTrip = catchAsync(
+ const createTrip = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
     const user = req.user;
     if (!user?.email && user?.id) {
@@ -31,11 +31,10 @@ export const createTrip = catchAsync(
 );
 
 // Update trip
-export const updateTrip = catchAsync(
+ const updateTrip = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
     const tripId = req.params.id;
     const userId = req.user?.id;
-    console.log({ "req?.user": req?.user });
 
     if (!userId)
       throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
@@ -53,7 +52,7 @@ export const updateTrip = catchAsync(
 );
 
 // Get single trip
-export const getTripById = catchAsync(async (req: Request, res: Response) => {
+ const getTripById = catchAsync(async (req: Request, res: Response) => {
   const tripId = req.params.id;
   const trip = await TripService.getTripById(tripId);
 
@@ -66,7 +65,7 @@ export const getTripById = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Get all trips
-export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
+ const getAllTrips = catchAsync(async (req: Request, res: Response) => {
   const trips = await TripService.getAllTrips(req.query as Record<string, string>);
 
   sendResponse(res, {
@@ -79,13 +78,14 @@ export const getAllTrips = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Get logged-in user trips
-export const getMyTrips = catchAsync(async (req: Request, res: Response) => {
+ const getMyTrips = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
-console.log("userid in controller my trips: ", userId);
+
+  console.log({"queryStatus:":req.query.status});
+  
 
   const myTrips = await TripService.getMyTrips(userId, req.query as Record<string, string>);
-  console.log(myTrips);
 
   sendResponse(res, {
     success: true,
@@ -96,8 +96,9 @@ console.log("userid in controller my trips: ", userId);
   });
 });
 
+
 // Delete trip
-export const deleteTrip = catchAsync(async (req: Request, res: Response) => {
+ const deleteTrip = catchAsync(async (req: Request, res: Response) => {
   const tripId = req.params.id;
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -135,22 +136,28 @@ const updateTripStatus =  catchAsync(async (req, res) => {
   });
 });
 
-export const getAvailableTrips = catchAsync(
+ const getAvailableTrips = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) {
       throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
     }
-
-    const result = await TripService.getAvailableTrips(
+    console.log({userId});
+    
+    const result = await TripService.getAllAvailableTrips(
       userId,
-      req.query
+      req.query as Record<string, string>
     );
+
+    if (result.data.length ===0) {
+      console.log("no trips found");
+      
+    }
 
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: "Available trips fetched successfully",
+      message: "successfully",
       meta: result.meta,
       data: result.data,
     });

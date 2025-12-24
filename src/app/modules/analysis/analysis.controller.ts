@@ -7,7 +7,7 @@ import customError from "../../shared/customError";
 
 const getExplorerAnalysis = catchAsync(async (req, res) => {
   const userId = req.user?.id;
-  if (userId) {
+  if (!userId) {
       throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
     }
   const data = await AnalysisService.getExplorerAnalysis(userId as string);

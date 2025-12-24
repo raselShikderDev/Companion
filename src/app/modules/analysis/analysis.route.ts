@@ -6,14 +6,12 @@ import { AnalysisController } from "./analysis.controller";
 
 const router = Router();
 
-// ✅ Explorer Analysis
 router.get(
   "/explorer",
   checkAuth(Role.EXPLORER),
   AnalysisController.getExplorerAnalysis
 );
 
-// ✅ Admin Analysis
 router.get(
   "/admin",
   checkAuth(Role.ADMIN),

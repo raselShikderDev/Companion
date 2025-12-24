@@ -1,3 +1,4 @@
+/** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";

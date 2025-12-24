@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+/** biome-ignore-all lint/style/useImportType: > */
 import { NextFunction, Request, Response } from "express";
 import { ZodObject, ZodRawShape } from "zod";
 import { envVars } from "../configs/envVars";
@@ -7,6 +8,7 @@ import { envVars } from "../configs/envVars";
 
 export const validateRequest =
     (zodSchema: ZodObject<ZodRawShape>) =>
+        // biome-ignore lint/correctness/noUnusedFunctionParameters: >
         async (req: Request, res: Response, next: NextFunction) => {
             if (envVars.NODE_ENV === "Development") console.log(`in validateReq - req.body: `, req.body);
 

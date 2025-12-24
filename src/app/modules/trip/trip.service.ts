@@ -5,8 +5,8 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { createTripInput, UpdateTripInput } from "./trip.interface";
-import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { MatchStatus, TripStatus } from "@prisma/client";
+import { matchQueryBuilder } from "../../shared/matchQueryBuilder";
 
 const createTrip = async (data: createTripInput, userId: string) => {
   // Find the Explorer
@@ -23,20 +23,20 @@ const createTrip = async (data: createTripInput, userId: string) => {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // Count total matches
-  const totalMatches =
-    (explorer.outgoingMatches?.length || 0) +
-    (explorer.incomingMatches?.length || 0);
+  // // Count total matches
+  // const totalMatches =
+  //   (explorer.outgoingMatches?.length || 0) +
+  //   (explorer.incomingMatches?.length || 0);
 
-  // Check subscription
-  const hasActiveSubscription = explorer.subscription?.isActive;
+  // // Check subscription
+  // const hasActiveSubscription = explorer.subscription?.isActive;
 
-  if (totalMatches >= 3 && !hasActiveSubscription) {
-    throw new customError(
-      StatusCodes.BAD_REQUEST,
-      "You have reached 3 matches. Please subscribe to create more trips."
-    );
-  }
+  // if (totalMatches >= 3 && !hasActiveSubscription) {
+  //   throw new customError(
+  //     StatusCodes.BAD_REQUEST,
+  //     "You have reached 3 matches. Please subscribe to create more trips."
+  //   );
+  // }
 
   // Transaction: create trip and automatically associate with explorer
   const trip = await prisma.$transaction(async (prismaTx) => {
@@ -132,67 +132,160 @@ const updateTrip = async (
 const getTripById = async (tripId: string) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    include: { creator: true },
+    include: { creator: true, matches: true },
   });
   if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   return trip;
 };
 
 const getAllTrips = async (query: Record<string, string>) => {
-  // return prisma.trip.findMany({
-  //   include: { creator: true },
-  //   orderBy: { createdAt: "desc" },
-  // });
-  const builtQuery = prismaQueryBuilder(query, [
+  const builtQuery = matchQueryBuilder(query, [
     "title",
     "destination",
+    "budget",
+    "status",
     "matchCompleted",
-  ]);
+  ], "trip");
 
   const trips = await prisma.trip.findMany({
-    ...builtQuery,
-    include: {
-      creator: true,
-    },
+    where: builtQuery.where,
+    include: { creator: true },
+    orderBy: builtQuery.orderBy,
+    skip: builtQuery.skip,
+    take: builtQuery.take,
   });
-  const total = await prisma.trip.count({ where: builtQuery.where });
+
+  const total = await prisma.trip.count({
+    where: builtQuery.where,
+  });
 
   return {
     data: trips,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
+      total,
+    },
+  };
+};
+
+const getAllAvailableTrips = async (
+  userId: string,
+  query: Record<string, string>
+) => {
+  const builtQuery = matchQueryBuilder(query, [
+    "title",
+    "destination",
+    "description",
+    "departureLocation",
+    "budget",
+    "status",
+  ], "trip");
+
+  // fetch user + explorer in one go
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { explorer: true },
+  });
+
+  if (!user || !user.explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
+
+  const explorerId = user.explorer.id;
+
+  // final where condition
+  const whereCondition = {
+    ...builtQuery.where,
+    matchCompleted: false,
+    creatorId: {
+      not: explorerId,
+    },
+  };
+
+  // run in parallel
+  const [trips, total] = await Promise.all([
+    prisma.trip.findMany({
+      where: whereCondition,
+      include: { creator: true },
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.limit,
+    }),
+    prisma.trip.count({
+      where: whereCondition,
+    }),
+  ]);
+
+  return {
+    data: trips,
+    meta: {
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
   };
 };
 
 const getMyTrips = async (userId: string, query: Record<string, string>) => {
-  console.log({ userId });
-  const builtQuery = prismaQueryBuilder(query, [
-    "title",
-    "destination",
-    "matchCompleted",
+  // const builtQuery = prismaQueryBuilder(query, [
+  //   "title",
+  //   "destination",
+  //   "description",
+  //   "departureLocation",
+  //   "budget",
+  //   "status",
+  // ]);
+ 
+const builtQuery = matchQueryBuilder(
+  query,
+  ["title", "destination", "description", "status", "budget", "departureLocation"],
+  "trip"
+);
+
+  console.log({"query.status":query.status});
+  
+
+  const whereCondition: any = {
+    creator: {
+      user: {
+        id: userId,
+      },
+    },
+  };
+
+  if (
+    builtQuery.where &&
+    Object.keys(builtQuery.where).length > 0
+  ) {
+    whereCondition.AND = [builtQuery.where];
+  }
+
+  const [trips, total] = await prisma.$transaction([
+    prisma.trip.findMany({
+      where: whereCondition,
+      include: {
+        creator: true,
+      },
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.take,
+    }),
+    prisma.trip.count({
+      where: whereCondition,
+    }),
   ]);
-
-  const trips = await prisma.trip.findMany({
-    where: { creator: { userId } },
-    include: { creator: true },
-    orderBy: { createdAt: "desc" },
-  });
-  console.log("my trips: ", trips);
-
-  const total = await prisma.trip.count({ where: builtQuery.where });
 
   return {
     data: trips,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
   };
 };
+
 
 const deleteTrip = async (tripId: string, userId: string) => {
   const trip = await prisma.trip.findUnique({
@@ -214,7 +307,6 @@ const updateTripStatus = async (
   userId: string,
   newStatus: TripStatus
 ) => {
-  // ✅ 1. Convert USER → EXPLORER
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -223,14 +315,11 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // ✅ 2. Load trip with ACCEPTED matches only
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
     include: {
       matches: {
-        where: {
-          status: MatchStatus.ACCEPTED,
-        },
+        where: { status: MatchStatus.ACCEPTED },
       },
     },
   });
@@ -239,10 +328,8 @@ const updateTripStatus = async (
     throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
   }
 
-  // ✅ 3. Must either be:
-  // - trip creator
-  // - OR part of an accepted match
   const isCreator = trip.creatorId === explorer.id;
+
   const isMatchedUser = trip.matches.some(
     (m) => m.requesterId === explorer.id || m.recipientId === explorer.id
   );
@@ -250,53 +337,66 @@ const updateTripStatus = async (
   if (!isCreator && !isMatchedUser) {
     throw new customError(
       StatusCodes.FORBIDDEN,
-      "You are not allowed to complete this trip"
+      "You are not allowed to update this trip"
     );
   }
 
-  // ✅ 4. Already completed protection
   if (
     trip.status === TripStatus.COMPLETED ||
     trip.status === TripStatus.CANCELLED
   ) {
     throw new customError(
       StatusCodes.CONFLICT,
-      `Trip is already marked as ${trip.status}`
+      `Trip already marked as ${trip.status}`
     );
   }
 
-  // ✅ 5. TRANSACTION-SAFE UPDATE
+  if (trip.matches.length === 0) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Trip has no accepted matches"
+    );
+  }
+
   const updatedTrip = await prisma.$transaction(async (tx) => {
-    // ✅ lock-style recheck inside transaction
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId, matchCompleted: true },
+    const freshTrip = await tx.trip.findFirst({
+      where: { id: tripId },
     });
 
-    if (freshTrip?.status === TripStatus.COMPLETED) {
-      throw new customError(
-        StatusCodes.CONFLICT,
-        "Trip already marked as completed"
-      );
+    if (!freshTrip) {
+      throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
     }
 
-    const result = await tx.trip.update({
+    const tripUpdated = await tx.trip.update({
       where: { id: tripId },
+      include:{
+        matches:true
+      },
       data: {
         status: newStatus,
-        updatedAt: new Date(),
+        matchCompleted: newStatus  === TripStatus.COMPLETED,
       },
     });
 
-    return result;
+    if (tripUpdated.status === TripStatus.COMPLETED) {
+      await tx.match.update({
+        where:{
+          id:tripUpdated.matches.filter((match)=> match.tripId === tripUpdated.id)[0].id
+        },
+        data:{
+          status:MatchStatus.COMPLETED,
+        }
+      })
+    }
+
+   
+    return tripUpdated;
   });
 
   return updatedTrip;
 };
 
-const getAvailableTrips = async (
-  userId: string,
-  query: any
-) => {
+const getAvailableTrips = async (userId: string, query: any) => {
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
   });
@@ -333,10 +433,7 @@ const getAvailableTrips = async (
       {
         matches: {
           none: {
-            OR: [
-              { requesterId: explorer.id },
-              { recipientId: explorer.id },
-            ],
+            OR: [{ requesterId: explorer.id }, { recipientId: explorer.id }],
           },
         },
       },
@@ -392,7 +489,6 @@ const getAvailableTrips = async (
   };
 };
 
-
 export const TripService = {
   createTrip,
   updateTrip,
@@ -401,5 +497,6 @@ export const TripService = {
   getMyTrips,
   deleteTrip,
   updateTripStatus,
-  getAvailableTrips
+  getAvailableTrips,
+  getAllAvailableTrips,
 };

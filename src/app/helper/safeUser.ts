@@ -1,4 +1,5 @@
-const safeUser = (user: any) => {
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
+export const safeUser = (user: any) => {
   if (!user) return null;
 
   delete user.password;

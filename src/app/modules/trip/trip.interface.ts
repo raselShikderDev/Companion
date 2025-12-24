@@ -29,3 +29,10 @@ export interface UpdateTripInput {
   duration?: string;
   Languages?: string[];
 }
+
+
+export type ITripFilterRequest = {
+  searchTerm?: string | undefined;
+  status?: string | undefined;
+  matchCompleted?: string | undefined;
+};

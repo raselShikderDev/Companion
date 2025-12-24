@@ -1,9 +1,8 @@
 /** biome-ignore-all lint/style/useImportType: <> */
 
 import { SubscriptionPlan } from "@prisma/client";
-import { PlanInfo } from "./subscription.interface";
 
-export const PLANS: Record<SubscriptionPlan, PlanInfo> = {
+export const PLANS= {
   FREE: {
     name: SubscriptionPlan.FREE,
     priceBDT: 0,

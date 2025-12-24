@@ -10,6 +10,13 @@ import { Role } from "@prisma/client";
 
 const router = Router()
 
+// Get logged-in user profile (Admin + Explorer)
+router.get(
+  "/me",
+  checkAuth(...(Object.values(Role))),
+  userController.getMe
+);
+
 // Get all users (Admin only)
 router.get(
   "/",
@@ -24,12 +31,7 @@ router.get(
   userController.getSingleUser
 );
 
-// Get logged-in user profile (Admin + Explorer)
-router.get(
-  "/me",
-  checkAuth(...(Object.values(Role))),
-  userController.getMe
-);
+
 
 router.post("/create-explorer", validateRequest(createExplorerZodSchema), userController.createExplorer);
 router.post("/create-admin", validateRequest(createAdminZodSchema), checkAuth(Role.ADMIN, Role.SUPER_ADMIN), userController.createAdmin);

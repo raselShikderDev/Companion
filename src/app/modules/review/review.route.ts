@@ -3,7 +3,11 @@ import { Router } from "express";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
 import { validateRequest } from "../../middlewares/validateRequest";
-import { adminReviewStatusSchema, createReviewSchema, updateReviewSchema } from "./review.zodSchema";
+import {
+  adminReviewStatusSchema,
+  createReviewSchema,
+  updateReviewSchema,
+} from "./review.zodSchema";
 import { ReviewController } from "./review.controller";
 
 const router = Router();
@@ -11,7 +15,7 @@ const router = Router();
 router.post(
   "/create",
   validateRequest(createReviewSchema),
-   checkAuth(Role.EXPLORER),
+  checkAuth(Role.EXPLORER),
   ReviewController.createReview
 );
 
@@ -21,16 +25,11 @@ router.get(
   ReviewController.getMyReviews
 );
 
+router.get("/", ReviewController.getAllReviews);
 
-router.get(
-  "/",
-  ReviewController.getAllReviews
-);
+router.get("/match/:matchid", ReviewController.getReviewByMatchId);
 
-router.get(
-  "/:id",
-  ReviewController.getSingleReview
-);
+router.get("/:id", ReviewController.getSingleReview);
 
 // Admin Review Status
 router.patch(
@@ -52,6 +51,5 @@ router.delete(
   checkAuth(Role.EXPLORER, Role.ADMIN, Role.SUPER_ADMIN),
   ReviewController.deleteReview
 );
-
 
 export const ReviewRouter = router;
