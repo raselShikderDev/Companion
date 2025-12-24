@@ -66,9 +66,13 @@ export const refreshToken = catchAsync(
 
 const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
+  console.log("email in controler: ", email);
 
-  await authService.forgotPassword(email);
-
+ const emailSent = await authService.forgotPassword(email as string);
+if (!emailSent.success) {
+  throw new customError(StatusCodes.FORBIDDEN, "Forget Password email sending is failed");
+  
+}
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
