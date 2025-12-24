@@ -10,6 +10,20 @@ export const validateRequest =
     (zodSchema: ZodObject<ZodRawShape>) =>
         // biome-ignore lint/correctness/noUnusedFunctionParameters: >
         async (req: Request, res: Response, next: NextFunction) => {
+            if (req.body && typeof req.body === "object") {
+                Object.keys(req.body).forEach((key) => {
+                    if (req.body[key] === null) {
+                        delete req.body[key];
+                    }
+                });
+            }
+            if (req.body.data && typeof req.body.data === "object") {
+                Object.keys(req.body.data).forEach((key) => {
+                    if (req.body.data[key] === null) {
+                        delete req.body.data[key];
+                    }
+                });
+            }
             if (envVars.NODE_ENV === "Development") console.log(`in validateReq - req.body: `, req.body);
 
             if (req.body.data) {
