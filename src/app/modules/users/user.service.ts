@@ -29,7 +29,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
     throw new customError(StatusCodes.BAD_REQUEST, "Explorer already exists! Please use another email")
   }
 
-  return prisma.$transaction(async (tx:any) => {
+  return prisma.$transaction(async (tx: any) => {
     const hashedPassword = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND as string));
 
     //  Create user
@@ -69,7 +69,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
 // }
 
 // Create admin
- const createAdmin = async (payload: ICreateAdmin) => {
+const createAdmin = async (payload: ICreateAdmin) => {
   const { email } = payload;
   console.log({ payload });
 
@@ -86,7 +86,7 @@ const createExplorer = async (payload: ICreateExplorer) => {
   }
 
   // Run transaction to create user + admin
-  return prisma.$transaction(async (tx:any) => {
+  return prisma.$transaction(async (tx: any) => {
     const hashedPassword = await bcrypt.hash(
       payload.password,
       Number(envVars.BCRYPT_SALT_ROUND)
@@ -130,9 +130,10 @@ const createExplorer = async (payload: ICreateExplorer) => {
 const updateProfilePicture = async (
   userId: string,
   data: UpdateProfilePictureInput
-)  => {
+) => {
+  console.log("updating profile picture");
 
-   const user = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { explorer: true, admin: true },
   });
@@ -149,7 +150,7 @@ const updateProfilePicture = async (
     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
 
   // Update inside transaction
-  const updated = await prisma.$transaction(async (tx:any) => {
+  const updated = await prisma.$transaction(async (tx: any) => {
     if (user.role === "ADMIN") {
       return await tx.admin.update({
         where: { id: target.id },
@@ -162,6 +163,7 @@ const updateProfilePicture = async (
       });
     }
   });
+  console.log("Profile picture updated");
 
   return updated;
 };
@@ -170,6 +172,8 @@ const updateUserProfile = async (
   userId: string,
   data: UpdateUserProfileInput
 ) => {
+  console.log("updating user profile");
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { explorer: true, admin: true },
@@ -189,7 +193,7 @@ const updateUserProfile = async (
   // Never update email or password here  
   const allowedData = { ...data };
 
-  const updated = await prisma.$transaction(async (tx:any) => {
+  const updated = await prisma.$transaction(async (tx: any) => {
     if (user.role === "ADMIN") {
       return tx.admin.update({
         where: { id: target.id },
@@ -202,12 +206,13 @@ const updateUserProfile = async (
       });
     }
   });
+  console.log("User profile info updated");
 
   return updated;
 };
 
-const getAllUsers = async (query:Record<string, string>) => {
-   const builtQuery = prismaQueryBuilder(query, [
+const getAllUsers = async (query: Record<string, string>) => {
+  const builtQuery = prismaQueryBuilder(query, [
     "email",
     "fullName",
     "phone",
@@ -219,9 +224,9 @@ const getAllUsers = async (query:Record<string, string>) => {
   //   },
   // });
 
-    const users = await prisma.user.findMany({
-      where:builtQuery.where
-    });
+  const users = await prisma.user.findMany({
+    where: builtQuery.where
+  });
 
   const total = await prisma.user.count({
     where: builtQuery.where,
@@ -229,11 +234,11 @@ const getAllUsers = async (query:Record<string, string>) => {
 
   return {
     meta: {
-    page: Number(query.page) || 1,
+      page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
       total,
     },
-    data:  users.map(safeUser)
+    data: users.map(safeUser)
   };
 };
 
@@ -258,12 +263,12 @@ const getMe = async (userId: string) => {
     where: { id: userId },
     include: {
       explorer: {
-        include:{
-          subscription:true
+        include: {
+          subscription: true
         }
       },
       admin: true,
-      
+
     },
   });
 
