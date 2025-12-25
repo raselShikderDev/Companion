@@ -124,9 +124,9 @@ const forgotPassword = async (email: string) => {
   // rate-limit: how many forgot requests in last hour
   const rateKey = `pwd_flood:${email}`;
   const floods = Number((await redisClient.get(rateKey)) ?? 0);
-  // if (floods >= FORGOT_RATE_LIMIT) {
-  //   throw new customError(StatusCodes.TOO_MANY_REQUESTS, "Too many requests. Try again later.");
-  // }
+  if (floods >= FORGOT_RATE_LIMIT) {
+    throw new customError(StatusCodes.TOO_MANY_REQUESTS, "Too many requests. Try again later.");
+  }
 
   // find user
   const user = await prisma.user.findUnique({ where: { email } });
@@ -155,7 +155,7 @@ const forgotPassword = async (email: string) => {
   await redisClient.expire(rateKey, 60 * 60); // 1 hour
 
 
-  // const resetVerifyUrl = `${envVars.FRONEND_URL}/auth/verify-otp`; // frontend route if you have one
+  const resetVerifyUrl = `${envVars.FRONEND_URL}/verify-otp`; // frontend route if you have one
 
 
   await sendEmail({
