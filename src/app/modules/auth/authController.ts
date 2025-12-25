@@ -68,11 +68,11 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
   console.log("email in controler: ", email);
 
- const emailSent = await authService.forgotPassword(email as string);
-if (!emailSent.success) {
-  throw new customError(StatusCodes.FORBIDDEN, "Forget Password email sending is failed");
-  
-}
+  const emailSent = await authService.forgotPassword(email as string);
+  if (!emailSent.success) {
+    throw new customError(StatusCodes.FORBIDDEN, "Forget Password email sending is failed");
+
+  }
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
@@ -85,12 +85,16 @@ const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   const { email, otp } = req.body;
 
   const isVerified = await authService.verifyOtp(req.body);
+  if (!isVerified.resetToken || !isVerified.expiresIn) {
+    throw new customError(StatusCodes.FORBIDDEN, "OTP verification is failed");
+  }
+  console.log({ isVerified });
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
     message: "OTP verified successfully",
-    data: { verified: isVerified }
+    data: isVerified
   });
 });
 

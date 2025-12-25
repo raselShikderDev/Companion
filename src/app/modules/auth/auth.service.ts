@@ -130,6 +130,9 @@ const forgotPassword = async (email: string) => {
 
   // find user
   const user = await prisma.user.findUnique({ where: { email } });
+  if (!user?.email) {
+    throw new customError(StatusCodes.NOT_FOUND, "Email is not registerd")
+  }
   if (!user) {
     // Don't reveal whether email exists: act as if it was sent
     await redisClient.incr(rateKey);
@@ -214,7 +217,7 @@ const verifyOtp = async (input: VerifyOtpInput) => {
   await redisClient.setEx(resetKey, RESET_TOKEN_TTL_SECONDS, JSON.stringify({ userId: user.id }));
 
 
-  return { ok: true, resetToken, expiresIn: RESET_TOKEN_TTL_SECONDS };
+  return { resetToken, expiresIn: RESET_TOKEN_TTL_SECONDS };
 }
 
 // step 3: reset password using reset token

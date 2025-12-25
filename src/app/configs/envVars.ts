@@ -14,6 +14,8 @@ interface IEnvVars {
   SUPER_ADMIN_EMAIL: string;
   JWT_REFRESH_SECRET: string;
   JWT_REFRESH_EXPIRES: string;
+  RESET_TOKEN_SECRET: string;
+  RESET_TOKEN_EXPIRES: string;
   FRONEND_URL: string;
   EXPRESS_SESSION_SECRET: string;
   SMTP: {
@@ -58,6 +60,8 @@ const loadEnvVariables = (): IEnvVars => {
     "JWT_ACCESS_EXPIRES",
     "JWT_ACCESS_SECRET",
     "BCRYPT_SALT_ROUND",
+    "RESET_TOKEN_SECRET",
+    "RESET_TOKEN_EXPIRES",
     "SUPER_ADMIN_PASSWORD",
     "SUPER_ADMIN_EMAIL",
     "JWT_REFRESH_SECRET",
@@ -107,6 +111,8 @@ const loadEnvVariables = (): IEnvVars => {
     SUPER_ADMIN_PASSWORD: process.env.SUPER_ADMIN_PASSWORD as string,
     JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET as string,
     JWT_REFRESH_EXPIRES: process.env.JWT_REFRESH_EXPIRES as string,
+    RESET_TOKEN_SECRET: process.env.RESET_TOKEN_SECRET as string,
+    RESET_TOKEN_EXPIRES: process.env.RESET_TOKEN_EXPIRES as string,
     EXPRESS_SESSION_SECRET: process.env.EXPRESS_SESSION_SECRET as string,
     FRONEND_URL: process.env.FRONEND_URL as string,
     SMTP: {

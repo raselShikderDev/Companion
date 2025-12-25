@@ -62,7 +62,6 @@ if (envVars.NODE_ENV === "Development")
       console.log(`\u2709\uFE0F Email send to ${to}: ${templateData}`);
     const html = await ejs.renderFile(templatePath, templateData);
 
-    console.log({ html });
 
 
     const info = await transporter.sendMail({
