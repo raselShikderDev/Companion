@@ -3,7 +3,12 @@
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
-import { ICreateAdmin, ICreateExplorer, UpdateProfilePictureInput, UpdateUserProfileInput } from "./user.interface";
+import {
+  ICreateAdmin,
+  ICreateExplorer,
+  UpdateProfilePictureInput,
+  UpdateUserProfileInput,
+} from "./user.interface";
 import { envVars } from "../../configs/envVars";
 import { Gender, Role } from "@prisma/client";
 import customError from "../../shared/customError";
@@ -11,24 +16,28 @@ import { StatusCodes } from "http-status-codes";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { safeUser } from "../../helper/safeUser";
 
-
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
-
-  const { email } = payload
+  const { email } = payload;
 
   const existingUser = await prisma.user.findUnique({
     where: {
       email: email,
-    }
-  })
+    },
+  });
 
   if (existingUser?.email) {
-    throw new customError(StatusCodes.BAD_REQUEST, "Explorer already exists! Please use another email")
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Explorer already exists! Please use another email"
+    );
   }
 
   return prisma.$transaction(async (tx: any) => {
-    const hashedPassword = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND as string));
+    const hashedPassword = await bcrypt.hash(
+      payload.password,
+      Number(envVars.BCRYPT_SALT_ROUND as string)
+    );
 
     //  Create user
     const user = await tx.user.create({
@@ -124,7 +133,6 @@ const createAdmin = async (payload: ICreateAdmin) => {
 //   }
 // }
 
-
 const updateProfilePicture = async (
   userId: string,
   data: UpdateProfilePictureInput
@@ -139,10 +147,7 @@ const updateProfilePicture = async (
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
   // Identify target model based on role
-  const target =
-    user.role === "ADMIN"
-      ? user.admin
-      : user.explorer;
+  const target = user.role === "ADMIN" ? user.admin : user.explorer;
 
   if (!target)
     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
@@ -232,39 +237,43 @@ const updateUserProfile = async (
   });
 };
 
-
 const getAllUsers = async (query: Record<string, string>) => {
-  const builtQuery = prismaQueryBuilder(query, [
-    "email",
-    "fullName",
-    "phone",
-  ]);
-  
+  const builtQuery = prismaQueryBuilder(query, ["email", "fullName", "phone"]);
+  console.log("builtQuery: ", builtQuery);
+
+  const whereCondition = {
+    ...builtQuery.where,
+    role: { not: Role.SUPER_ADMIN },
+  };
+  console.log("whereCondition: ", whereCondition);
 
   const users = await prisma.user.findMany({
-    where: builtQuery.where,
-    include:{
-      explorer:{
-        include:{
-          subscription:true,
-        }
+    where: whereCondition,
+    include: {
+      explorer: {
+        include: {
+          subscription: true,
+        },
       },
-      admin:true,
-      
-    }
+      admin: true,
+    },
+    orderBy: builtQuery.orderBy,
+    skip: builtQuery.skip,
+    take: builtQuery.limit,
   });
 
   const total = await prisma.user.count({
-    where: builtQuery.where,
+    where: whereCondition,
   });
+console.log({total, users});
 
   return {
+    data: users.map(safeUser),
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: builtQuery.page,
+      limit: builtQuery.limit,
       total,
     },
-    data: users.map(safeUser)
   };
 };
 
@@ -290,11 +299,10 @@ const getMe = async (userId: string) => {
     include: {
       explorer: {
         include: {
-          subscription: true
-        }
+          subscription: true,
+        },
       },
       admin: true,
-
     },
   });
 
@@ -305,7 +313,6 @@ const getMe = async (userId: string) => {
   return user;
 };
 
-
 export const userService = {
   createExplorer,
   createAdmin,
@@ -315,5 +322,3 @@ export const userService = {
   getSingleUser,
   getMe,
 };
-
-
