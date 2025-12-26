@@ -292,7 +292,16 @@ const getAllUsers = async (query: Record<string, string>) => {
   // });
 
   const users = await prisma.user.findMany({
-    where: builtQuery.where
+    where: builtQuery.where,
+    include:{
+      explorer:{
+        include:{
+          subscription:true,
+        }
+      },
+      admin:true,
+      
+    }
   });
 
   const total = await prisma.user.count({
