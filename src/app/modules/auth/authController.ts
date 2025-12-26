@@ -44,7 +44,7 @@ const logOut = catchAsync(
 );
 
 
-export const refreshToken = catchAsync(
+ const refreshToken = catchAsync(
   async (req: Request, res: Response) => {
     const refreshToken = (req as any).refreshToken;
 
@@ -111,6 +111,23 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// for logged in user
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+
+ const changedPassword = await authService.changePassword(userId, req.body);
+ if (!changedPassword.password) {
+    throw new customError(StatusCodes.BAD_GATEWAY, "Password not changed");
+  }
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "Password successfully changed",
+    data: null
+  });
+});
+
 export const authController = {
   login,
   logOut,
@@ -118,4 +135,5 @@ export const authController = {
   verifyOTP,
   forgotPassword,
   refreshToken,
+  changePassword,
 };
