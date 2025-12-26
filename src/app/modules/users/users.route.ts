@@ -20,7 +20,7 @@ router.get(
 // Get all users (Admin only)
 router.get(
   "/",
-  checkAuth(Role.ADMIN),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   userController.getAllUsers
 );
 
@@ -30,7 +30,6 @@ router.get(
   checkAuth(Role.ADMIN),
   userController.getSingleUser
 );
-
 
 
 router.post("/create-explorer", validateRequest(createExplorerZodSchema), userController.createExplorer);

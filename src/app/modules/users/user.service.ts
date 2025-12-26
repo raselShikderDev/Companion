@@ -12,8 +12,6 @@ import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { safeUser } from "../../helper/safeUser";
 
 
-
-
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
 
@@ -222,61 +220,18 @@ const updateUserProfile = async (
   return prisma.$transaction(async (tx) => {
     if (isAdmin) {
       return tx.admin.update({
-        where: { id: user.admin!.id },
+        where: { id: user.admin?.id },
         data: allowedData,
       });
     }
 
     return tx.explorer.update({
-      where: { id: user.explorer!.id },
+      where: { id: user.explorer?.id },
       data: allowedData,
     });
   });
 };
 
-
-// const updateUserProfile = async (
-//   userId: string,
-//   data: UpdateUserProfileInput
-// ) => {
-//   console.log("updating user profile");
-
-//   const user = await prisma.user.findUnique({
-//     where: { id: userId },
-//     include: { explorer: true, admin: true },
-//   });
-
-//   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
-
-//   // Role based profile
-//   const target =
-//     user.role === "ADMIN"
-//       ? user.admin
-//       : user.explorer;
-
-//   if (!target)
-//     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
-
-//   // Never update email or password here  
-//   const allowedData = { ...data };
-
-//   const updated = await prisma.$transaction(async (tx: any) => {
-//     if (user.role === "ADMIN") {
-//       return tx.admin.update({
-//         where: { id: target.id },
-//         data: allowedData,
-//       });
-//     } else {
-//       return tx.explorer.update({
-//         where: { id: target.id },
-//         data: allowedData,
-//       });
-//     }
-//   });
-//   console.log("User profile info updated");
-
-//   return updated;
-// };
 
 const getAllUsers = async (query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, [
@@ -284,12 +239,7 @@ const getAllUsers = async (query: Record<string, string>) => {
     "fullName",
     "phone",
   ]);
-  // const users = await prisma.user.findMany({
-  //   include: {
-  //     explorers: true,
-  //     admins: true,
-  //   },
-  // });
+  
 
   const users = await prisma.user.findMany({
     where: builtQuery.where,

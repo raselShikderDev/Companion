@@ -1,4 +1,5 @@
 /** biome-ignore-all lint/style/useImportType: > */
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 /** biome-ignore-all assist/source/organizeImports: > */
 /** biome-ignore-all lint/correctness/noUnusedFunctionParameters: > */
 import { NextFunction, Request, Response } from "express";
@@ -82,7 +83,6 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const verifyOTP = catchAsync(async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
 
   const isVerified = await authService.verifyOtp(req.body);
   if (!isVerified.resetToken || !isVerified.expiresIn) {
@@ -99,7 +99,6 @@ const verifyOTP = catchAsync(async (req: Request, res: Response) => {
 });
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const { email, newPassword } = req.body;
 
   await authService.resetPassword(req.body);
 

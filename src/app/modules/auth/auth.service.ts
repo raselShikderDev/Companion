@@ -155,7 +155,7 @@ const forgotPassword = async (email: string) => {
   await redisClient.incr(rateKey);
   await redisClient.expire(rateKey, 60 * 60); // 1 hour
 
-  const resetVerifyUrl = `${envVars.FRONEND_URL}/verify-otp`; // frontend route if you have one
+  // const resetVerifyUrl = `${envVars.FRONEND_URL}/verify-otp`; // frontend route if you have one
 
   await sendEmail({
     to: email,
@@ -251,8 +251,7 @@ const resetPassword = async (input: ResetPasswordInput) => {
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
   // Hash new password
-  const saltRounds = Number(process.env.BCRYPT_SALT || 10);
-  const hashed = await bcrypt.hash(input.newPassword, saltRounds);
+  const hashed = await bcrypt.hash(input.newPassword, Number(envVars.BCRYPT_SALT_ROUND as string));
 
   // Update in DB atomically, remove tokens
   await prisma.$transaction([
@@ -327,8 +326,7 @@ const changePassword = async (
   }
 
   // 4. Hash new password
-  const saltRounds = Number(process.env.BCRYPT_SALT || 10);
-  const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+  const hashedPassword = await bcrypt.hash(newPassword, Number(envVars.BCRYPT_SALT_ROUND as string));
 
   // 5. Update password
   const updatedUserPass = await prisma.user.update({
