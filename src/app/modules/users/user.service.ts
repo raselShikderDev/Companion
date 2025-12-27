@@ -3,6 +3,7 @@
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
+import { UserStatus } from "@prisma/client";
 import {
   ICreateAdmin,
   ICreateExplorer,
@@ -313,6 +314,90 @@ const getMe = async (userId: string) => {
   return user;
 };
 
+
+
+
+/**
+ * Toggle user status
+ */
+const toggleUserStatusChange =  async (userId: string, status: UserStatus) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // Prevent changing status of deleted users
+  if (user.isDeleted) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Cannot change status of a deleted user"
+    );
+  }
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: { status },
+  });
+};
+// const toggleUserStatusChange = async (userId: string) => {
+//   const user = await prisma.user.findUnique({ where: { id: userId } });
+
+//   if (!user) {
+//     throw new customError(StatusCodes.NOT_FOUND, "User not found");
+//   }
+
+//   const nextStatus = user.status === UserStatus.ACTIVE ? UserStatus.BLOCKED : UserStatus.ACTIVE;
+
+//   const updatedUser = await prisma.user.update({
+//     where: { id: userId },
+//     data: { status: nextStatus },
+//   });
+
+//   return updatedUser;
+// };
+
+/**
+ * Soft delete (toggle isDeleted)
+ */
+const toggleSoftDeleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const isDeleting = !user.isDeleted;
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      isDeleted: isDeleting,
+      status: isDeleting ? UserStatus.SUSPENDED : UserStatus.ACTIVE,
+    },
+  });
+};
+
+
+/**
+ * Permanent delete (hard delete)
+ */
+const permanentDeleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  return { message: "User permanently deleted" };
+};
+
+
+
 export const userService = {
   createExplorer,
   createAdmin,
@@ -321,4 +406,7 @@ export const userService = {
   getAllUsers,
   getSingleUser,
   getMe,
+  toggleUserStatusChange,
+  toggleSoftDeleteUser,
+  permanentDeleteUser,
 };

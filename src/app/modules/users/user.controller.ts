@@ -7,6 +7,7 @@ import sendResponse from "../../shared/sendResponse";
 import { userService } from "./user.service";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
+import { UserStatus } from "@prisma/client";
 
 
 const createExplorer = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -62,7 +63,7 @@ const createAdmin = catchAsync(async (req: Request, res: Response, next: NextFun
   }
 );
 
-export const updateUserProfile = catchAsync(
+ const updateUserProfile = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) throw new customError(StatusCodes.UNAUTHORIZED,"Unauthorized" );
@@ -116,6 +117,38 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const toggleUserStatusChange = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.toggleUserStatusChange(req.params.id, req.body as UserStatus);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: `User status updated to ${result.status}`,
+    data: result,
+  });
+});
+
+const toggleSoftDeleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.toggleSoftDeleteUser(req.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: `User successfully ${result.isDeleted ? "Deleted": "Activated"}`,
+    data: null,
+  });
+});
+
+const permanentDeleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await userService.permanentDeleteUser(req.params.id);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User successfully permanent deleted",
+    data:null
+  });
+});
 
 
 export const userController = {
@@ -126,4 +159,7 @@ export const userController = {
     getAllUsers,
   getSingleUser,
   getMe,
+    toggleUserStatusChange,
+  toggleSoftDeleteUser,
+  permanentDeleteUser,
 }
