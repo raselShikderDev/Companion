@@ -266,7 +266,7 @@ const getAllUsers = async (query: Record<string, string>) => {
   const total = await prisma.user.count({
     where: whereCondition,
   });
-console.log({total, users});
+  console.log({ total, users });
 
   return {
     data: users.map(safeUser),
@@ -314,13 +314,10 @@ const getMe = async (userId: string) => {
   return user;
 };
 
-
-
-
 /**
  * Toggle user status
  */
-const toggleUserStatusChange =  async (userId: string, status: UserStatus) => {
+const toggleUserStatusChange = async (userId: string, status: UserStatus) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (!user) {
@@ -334,10 +331,20 @@ const toggleUserStatusChange =  async (userId: string, status: UserStatus) => {
       "Cannot change status of a deleted user"
     );
   }
+  console.log({ userId, status, currentStatus: user.status });
+
+  if (status === user.status) {
+    throw new customError(StatusCodes.BAD_REQUEST, `User already ${status}`);
+  }
+  console.log({
+    needUpdateUser: user,
+  });
 
   return prisma.user.update({
     where: { id: userId },
-    data: { status },
+    data: {
+      status: status as UserStatus,
+    },
   });
 };
 // const toggleUserStatusChange = async (userId: string) => {
@@ -378,7 +385,6 @@ const toggleSoftDeleteUser = async (userId: string) => {
   });
 };
 
-
 /**
  * Permanent delete (hard delete)
  */
@@ -395,8 +401,6 @@ const permanentDeleteUser = async (userId: string) => {
 
   return { message: "User permanently deleted" };
 };
-
-
 
 export const userService = {
   createExplorer,

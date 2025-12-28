@@ -118,7 +118,7 @@ const getMe = catchAsync(async (req: Request, res: Response) => {
 });
 
 const toggleUserStatusChange = catchAsync(async (req: Request, res: Response) => {
-  const result = await userService.toggleUserStatusChange(req.params.id, req.body as UserStatus);
+  const result = await userService.toggleUserStatusChange(req.params.id, req.body.status as UserStatus);
 
   sendResponse(res, {
     success: true,
@@ -141,7 +141,9 @@ const toggleSoftDeleteUser = catchAsync(async (req: Request, res: Response) => {
 
 const permanentDeleteUser = catchAsync(async (req: Request, res: Response) => {
   const result = await userService.permanentDeleteUser(req.params.id);
-
+if (result.message !== "User permanently deleted") {
+  
+}
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

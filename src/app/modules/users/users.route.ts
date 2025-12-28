@@ -67,7 +67,7 @@ router.patch(
 // Permanent delete 
 router.delete(
   "/:id",
-  checkAuth(Role.SUPER_ADMIN),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
   userController.permanentDeleteUser
 );
 
