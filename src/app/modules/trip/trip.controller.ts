@@ -101,8 +101,9 @@ import { TripStatus } from "@prisma/client";
  const deleteTrip = catchAsync(async (req: Request, res: Response) => {
   const tripId = req.params.id;
   const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
+  if (!userId) {
+    throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  }
   await TripService.deleteTrip(tripId, userId);
 
   sendResponse(res, {
@@ -136,6 +137,33 @@ const updateTripStatus =  catchAsync(async (req, res) => {
   });
 });
 
+
+const updateAdminTripStatus =  catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+  const tripId = req.params.id;
+
+  if (!userId) {
+    throw new customError(StatusCodes.UNAUTHORIZED, "Unauthorized");
+  }
+
+  const result = await TripService.updateAdminTripStatus(
+    tripId,
+    userId,
+    req.body.status as TripStatus,
+  );
+
+  if (result.status === req.body.status as TripStatus) {
+    throw new customError(StatusCodes.BAD_GATEWAY, "Trip status not chnaged")
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: `Trip status updated to ${result.status}`,
+    data: null,
+  });
+});
+
  const getAvailableTrips = catchAsync(
   async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -157,7 +185,7 @@ const updateTripStatus =  catchAsync(async (req, res) => {
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: "successfully",
+      message: "successfully retrived available trips",
       meta: result.meta,
       data: result.data,
     });
@@ -174,4 +202,5 @@ export const TripController = {
   deleteTrip,
   updateTripStatus,
   getAvailableTrips,
+  updateAdminTripStatus,
 };

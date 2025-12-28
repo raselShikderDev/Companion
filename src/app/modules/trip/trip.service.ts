@@ -5,7 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { createTripInput, UpdateTripInput } from "./trip.interface";
-import { MatchStatus, TripStatus } from "@prisma/client";
+import { MatchStatus, Role, TripStatus } from "@prisma/client";
 import { matchQueryBuilder } from "../../shared/matchQueryBuilder";
 
 const createTrip = async (data: createTripInput, userId: string) => {
@@ -236,15 +236,15 @@ const getMyTrips = async (userId: string, query: Record<string, string>) => {
   //   "budget",
   //   "status",
   // ]);
- 
-const builtQuery = matchQueryBuilder(
-  query,
-  ["title", "destination", "description", "status", "budget", "departureLocation"],
-  "trip"
-);
 
-  console.log({"query.status":query.status});
-  
+  const builtQuery = matchQueryBuilder(
+    query,
+    ["title", "destination", "description", "status", "budget", "departureLocation"],
+    "trip"
+  );
+
+  console.log({ "query.status": query.status });
+
 
   const whereCondition: any = {
     creator: {
@@ -288,17 +288,34 @@ const builtQuery = matchQueryBuilder(
 
 
 const deleteTrip = async (tripId: string, userId: string) => {
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { explorer: true },
+  });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
-    include: { creator: true },
+    include: { creator: true, matches: true },
   });
+
   if (!trip) throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
-  if (trip.creator.userId !== userId) {
-    throw new customError(
-      StatusCodes.FORBIDDEN,
-      "You are not allowed to delete this trip"
-    );
+  if (trip.matches.length > 0) throw new customError(StatusCodes.NOT_FOUND, "Trip can not be deleted before the match");
+
+
+  if (user.role !== Role.SUPER_ADMIN) {
+    if (trip.creator.userId !== userId) {
+      throw new customError(
+        StatusCodes.FORBIDDEN,
+        "You are not allowed to delete this trip"
+      );
+    }
   }
+
   return prisma.trip.delete({ where: { id: tripId } });
 };
 
@@ -369,29 +386,76 @@ const updateTripStatus = async (
 
     const tripUpdated = await tx.trip.update({
       where: { id: tripId },
-      include:{
-        matches:true
+      include: {
+        matches: true
       },
       data: {
         status: newStatus,
-        matchCompleted: newStatus  === TripStatus.COMPLETED,
+        matchCompleted: newStatus === TripStatus.COMPLETED,
       },
     });
 
     if (tripUpdated.status === TripStatus.COMPLETED) {
       await tx.match.update({
-        where:{
-          id:tripUpdated.matches.filter((match)=> match.tripId === tripUpdated.id)[0].id
+        where: {
+          id: tripUpdated.matches.filter((match) => match.tripId === tripUpdated.id)[0].id
         },
-        data:{
-          status:MatchStatus.COMPLETED,
+        data: {
+          status: MatchStatus.COMPLETED,
         }
       })
     }
 
-   
+
     return tripUpdated;
   });
+
+  return updatedTrip;
+};
+const updateAdminTripStatus = async (
+  tripId: string,
+  userId: string,
+  newStatus: TripStatus
+) => {
+  const admin = await prisma.admin.findFirst({
+    where: { userId },
+  });
+
+  if (!admin) {
+    throw new customError(StatusCodes.NOT_FOUND, "Admin not found");
+  }
+
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: {
+      matches: {
+        where: { status: MatchStatus.ACCEPTED },
+      },
+    },
+  });
+
+  if (!trip) {
+    throw new customError(StatusCodes.NOT_FOUND, "Trip not found");
+  }
+
+  if (
+    trip.status === newStatus
+  ) {
+    throw new customError(
+      StatusCodes.CONFLICT,
+      `Trip already marked as ${trip.status}`
+    );
+  }
+
+
+  const updatedTrip = await prisma.trip.update({
+    where: {
+      id: trip.id
+    },
+    data: {
+      status: newStatus as TripStatus
+    }
+  })
 
   return updatedTrip;
 };
@@ -440,21 +504,21 @@ const getAvailableTrips = async (userId: string, query: any) => {
 
       search
         ? {
-            OR: [
-              {
-                title: {
-                  contains: search,
-                  mode: "insensitive",
-                },
+          OR: [
+            {
+              title: {
+                contains: search,
+                mode: "insensitive",
               },
-              {
-                destination: {
-                  contains: search,
-                  mode: "insensitive",
-                },
+            },
+            {
+              destination: {
+                contains: search,
+                mode: "insensitive",
               },
-            ],
-          }
+            },
+          ],
+        }
         : {},
     ],
     ...filters,
@@ -499,4 +563,6 @@ export const TripService = {
   updateTripStatus,
   getAvailableTrips,
   getAllAvailableTrips,
+  updateAdminTripStatus,
 };
+
