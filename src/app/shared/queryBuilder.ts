@@ -9,7 +9,7 @@
 
 export const prismaQueryBuilder = (
   query: Record<string, string | number>,
-  searchableFields: string[],
+  searchableFields: string[]
 ) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
