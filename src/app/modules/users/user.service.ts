@@ -16,6 +16,7 @@ import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { safeUser } from "../../helper/safeUser";
+import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
@@ -239,43 +240,75 @@ const updateUserProfile = async (
 };
 
 const getAllUsers = async (query: Record<string, string>) => {
-  const builtQuery = prismaQueryBuilder(query, ["email", "fullName", "phone"]);
-  console.log("builtQuery: ", builtQuery);
 
-  const whereCondition = {
-    ...builtQuery.where,
-    role: { not: Role.SUPER_ADMIN },
+const bulidedQuery = universalQueryBuilder("user", query);
+ const whereCondition = {
+     AND: [
+    bulidedQuery.where,
+    { role: { not: Role.SUPER_ADMIN } },
+  ],
   };
-  console.log("whereCondition: ", whereCondition);
-
-  const users = await prisma.user.findMany({
-    where: whereCondition,
-    include: {
-      explorer: {
-        include: {
-          subscription: true,
-        },
-      },
-      admin: true,
-    },
-    orderBy: builtQuery.orderBy,
-    skip: builtQuery.skip,
-    take: builtQuery.limit,
-  });
+const users = await prisma.user.findMany({
+  where:whereCondition,
+  include: {
+    explorer: true,
+    admin: true,
+  },
+  orderBy: bulidedQuery.orderBy,
+    skip: bulidedQuery.skip,
+    take: bulidedQuery.take,
+});
 
   const total = await prisma.user.count({
     where: whereCondition,
   });
-  console.log({ total, users });
 
   return {
     data: users.map(safeUser),
     meta: {
-      page: builtQuery.page,
-      limit: builtQuery.limit,
+      page: bulidedQuery.meta.page,
+      limit: bulidedQuery.take,
       total,
     },
   };
+
+  // const builtQuery = prismaQueryBuilder(query, ["email", "fullName", "phone"]);
+  // console.log("builtQuery: ", builtQuery);
+
+  // const whereCondition = {
+  //   ...builtQuery.where,
+  //   role: { not: Role.SUPER_ADMIN },
+  // };
+  // console.log("whereCondition: ", whereCondition);
+
+  // const users = await prisma.user.findMany({
+  //   where: whereCondition,
+  //   include: {
+  //     explorer: {
+  //       include: {
+  //         subscription: true,
+  //       },
+  //     },
+  //     admin: true,
+  //   },
+  //   orderBy: builtQuery.orderBy,
+  //   skip: builtQuery.skip,
+  //   take: builtQuery.limit,
+  // });
+
+  // const total = await prisma.user.count({
+  //   where: whereCondition,
+  // });
+  // console.log({ total, users });
+
+  // return {
+  //   data: users.map(safeUser),
+  //   meta: {
+  //     page: builtQuery.page,
+  //     limit: builtQuery.limit,
+  //     total,
+  //   },
+  // };
 };
 
 const getSingleUser = async (userId: string) => {
