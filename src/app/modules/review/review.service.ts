@@ -7,6 +7,7 @@ import { StatusCodes } from "http-status-codes";
 import { CreateReviewInput, UpdateReviewInput } from "./review.interface";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { MatchStatus, Prisma, ReviewStatus, Role, TripStatus } from "@prisma/client";
+import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 
 const createReview = async (userId: string, data: CreateReviewInput) => {
   const { matchId, rating, comment } = data;
@@ -92,87 +93,77 @@ const createReview = async (userId: string, data: CreateReviewInput) => {
 };
 
 const getAllReviews = async (query: Record<string, any>) => {
+  const builtQuery = universalQueryBuilder("review", query);
 
-  const builtQuery = prismaQueryBuilder(query, ["status", "comment"]);
-
-  const whereCondition = {
-    ...builtQuery.where,
-  };
-
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
-
-  const reviews = await prisma.review.findMany({
-      where: whereCondition,
+  const [data, total] = await prisma.$transaction([
+    prisma.review.findMany({
+      where: builtQuery.where,
       include: {
         reviewer: true,
         match: true,
       },
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    })
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.take,
+    }),
 
-
-  const total = await prisma.review.count({ where: whereCondition })
+    prisma.review.count({
+      where: builtQuery.where,
+    }),
+  ]);
 
   return {
-    data:reviews,
+    data,
     meta: {
-      page: builtQuery.page,
-      limit: builtQuery.limit,
+      ...builtQuery.meta,
       total,
     },
   };
 };
 
 const getMyReviews = async (userId: string, query: Record<string, any>) => {
-  const builtQuery = prismaQueryBuilder(query, ["comment", "status"]);
+  const explorer = await prisma.explorer.findFirst({
+    where: { userId },
+  });
 
-   const explorer = await prisma.explorer.findFirst({
-      where: { userId },
-    });
-  
-    if (!explorer) {
-      throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
-    }
+  if (!explorer) {
+    throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
+  }
 
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
+  const builtQuery = universalQueryBuilder("review", query);
 
   const whereCondition: Prisma.ReviewWhereInput = {
     AND: [
       { reviewerId: explorer.id },
-      ...(Object.keys(builtQuery.where).length ? [builtQuery.where] : []),
+      builtQuery.where,
     ],
   };
 
-  const data = await prisma.review.findMany({
-    where: whereCondition,
-    include: {
-      reviewer: true,
-      match: {
-        include: { trip: true },
+  const [data, total] = await prisma.$transaction([
+    prisma.review.findMany({
+      where: whereCondition,
+      include: {
+        reviewer: true,
+        match: {
+          include: { trip: true },
+        },
       },
-      
-    },
-    skip,
-    take: limit,
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.take,
+    }),
 
-  // const data2 = await prisma.review.findMany()
+    prisma.review.count({
+      where: whereCondition,
+    }),
+  ]);
 
-  const total = await prisma.review.count({ where: whereCondition });
   return {
+    data,
     meta: {
-      page,
-      limit,
+      ...builtQuery.meta,
       total,
     },
-    data:data,
   };
 };
 
@@ -304,16 +295,16 @@ const deleteReview = async (reviewId: string, userId: string) => {
 const adminReviewUpdateStatus = async (
   reviewId: string,
   status: ReviewStatus,
-  role:Role
+  role: Role
 ) => {
 
   const review = await prisma.review.findFirst({
-    where:{
-      id:reviewId
+    where: {
+      id: reviewId
     }
   })
 
-    if (!review || !review.reviewerId) {
+  if (!review || !review.reviewerId) {
     throw new customError(StatusCodes.NOT_FOUND, "Review not found");
   }
 
@@ -323,13 +314,13 @@ const adminReviewUpdateStatus = async (
       `Trip already marked as ${review.status}`
     );
   }
-  
+
 
   if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN) {
     throw new customError(StatusCodes.NOT_FOUND, `${role}is not allowed chnage status`);
   }
 
-  
+
 
 
   return prisma.review.update({
