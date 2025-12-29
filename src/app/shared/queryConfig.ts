@@ -19,7 +19,7 @@ export const QUERY_SCHEMA_MAP = {
   },
 
   trip: {
-    searchableFields: ["title", "destination", "departureLocation"],
+    searchableFields: ["title", "destination", "departureLocation", "budget", "duration"],
     filterableFields: ["status", "matchCompleted"],
     dateField: "startDate",
   },
