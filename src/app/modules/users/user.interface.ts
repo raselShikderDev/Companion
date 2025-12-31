@@ -41,4 +41,5 @@ export interface UpdateUserProfileInput {
   phone?: string;
   travelStyleTags?: string[];
   interests?: string[];
+  profilePicture?: string; 
 }

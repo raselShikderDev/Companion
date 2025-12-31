@@ -172,8 +172,6 @@ const updateUserProfile = async (
   userId: string,
   data: UpdateUserProfileInput
 ) => {
-  console.log("updating user profile");
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { explorer: true, admin: true },
@@ -181,35 +179,104 @@ const updateUserProfile = async (
 
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
-  // Role based profile
-  const target =
-    user.role === "ADMIN"
-      ? user.admin
-      : user.explorer;
+  const isAdmin = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
 
-  if (!target)
-    throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
+  // ✅ ROLE-BASED DATA FILTERING
+  let allowedData: any;
 
-  // Never update email or password here  
-  const allowedData = { ...data };
+  if (isAdmin) {
+    const { fullName, phone, address, bio, profilePicture } = data;
+    allowedData = {
+      ...(fullName && { fullName }),
+      ...(phone && { phone }),
+      ...(address && { address }),
+      ...(bio && { bio }),
+      ...(profilePicture && { profilePicture }),
+    };
+  } else {
+    const {
+      fullName,
+      phone,
+      address,
+      bio,
+      age,
+      gender,
+      travelStyleTags,
+      interests,
+      profilePicture,
+    } = data;
 
-  const updated = await prisma.$transaction(async (tx: any) => {
-    if (user.role === "ADMIN") {
+    allowedData = {
+      ...(fullName && { fullName }),
+      ...(phone && { phone }),
+      ...(address && { address }),
+      ...(bio && { bio }),
+      ...(age && { age }),
+      ...(gender && { gender }),
+      ...(travelStyleTags && { travelStyleTags }),
+      ...(interests && { interests }),
+      ...(profilePicture && { profilePicture }),
+    };
+  }
+
+  return prisma.$transaction(async (tx) => {
+    if (isAdmin) {
       return tx.admin.update({
-        where: { id: target.id },
-        data: allowedData,
-      });
-    } else {
-      return tx.explorer.update({
-        where: { id: target.id },
+        where: { id: user.admin!.id },
         data: allowedData,
       });
     }
-  });
-  console.log("User profile info updated");
 
-  return updated;
+    return tx.explorer.update({
+      where: { id: user.explorer!.id },
+      data: allowedData,
+    });
+  });
 };
+
+
+// const updateUserProfile = async (
+//   userId: string,
+//   data: UpdateUserProfileInput
+// ) => {
+//   console.log("updating user profile");
+
+//   const user = await prisma.user.findUnique({
+//     where: { id: userId },
+//     include: { explorer: true, admin: true },
+//   });
+
+//   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
+
+//   // Role based profile
+//   const target =
+//     user.role === "ADMIN"
+//       ? user.admin
+//       : user.explorer;
+
+//   if (!target)
+//     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
+
+//   // Never update email or password here  
+//   const allowedData = { ...data };
+
+//   const updated = await prisma.$transaction(async (tx: any) => {
+//     if (user.role === "ADMIN") {
+//       return tx.admin.update({
+//         where: { id: target.id },
+//         data: allowedData,
+//       });
+//     } else {
+//       return tx.explorer.update({
+//         where: { id: target.id },
+//         data: allowedData,
+//       });
+//     }
+//   });
+//   console.log("User profile info updated");
+
+//   return updated;
+// };
 
 const getAllUsers = async (query: Record<string, string>) => {
   const builtQuery = prismaQueryBuilder(query, [

@@ -32,10 +32,25 @@ export const updateProfilePictureSchema = z.object({
 export const updateUserProfileSchema = z.object({
   fullName: z.string().min(2).optional(),
   gender: z.enum(Gender).optional(),
-  age: z.string().optional(),
+  age: z
+    .string()
+    .optional()
+    .transform((v) => (v === null ? undefined : v)),
   address: z.string().optional(),
   bio: z.string().optional(),
   phone: z.string().optional(),
   travelStyleTags: z.array(z.string()).optional(),
   interests: z.array(z.string()).optional(),
 });
+
+
+// export const updateUserProfileSchema = z.object({
+//   fullName: z.string().min(2).optional(),
+//   gender: z.enum(Gender).optional(),
+//   age: z.string().optional(),
+//   address: z.string().optional(),
+//   bio: z.string().optional(),
+//   phone: z.string().optional(),
+//   travelStyleTags: z.array(z.string()).optional(),
+//   interests: z.array(z.string()).optional(),
+// });
