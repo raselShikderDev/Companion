@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "es2022",                             /* Set the JavaScript language version for emitted JavaScript. */
+    "target": "es2016",                             /* Set the JavaScript language version for emitted JavaScript. */
     
     /* Modules */
-    "module": "esnext",                          /* Use modern module resolution for Node. */
-    "moduleResolution": "Bundler",                /* Specify how TypeScript looks up module files. */
+    "module": "commonjs",                          /* Use modern module resolution for Node. */
+    // "moduleResolution": "Bundler",                /* Specify how TypeScript looks up module files. */
     "rootDir": "./src",                            /* Source files are here. */
     "outDir": "./dist",                            /* Compiled files go here. */
     "sourceMap": true,                             /* Recommended for debugging deployed code. */

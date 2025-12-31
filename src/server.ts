@@ -1,3 +1,4 @@
+/** biome-ignore-all assist/source/organizeImports: > */
 import type { Server } from "node:http";
 import { envVars } from "./app/configs/envVars.js";
 import app from "./app.js";

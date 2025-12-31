@@ -1,10 +1,12 @@
 {
   "name": "companion",
-  "type": "module",
-  "private": true,
+  "main": "server.js",
   "scripts": {
     "dev-n": "ts-node-dev --respawn --transpile-only --loader ts-node/esm ./src/server.ts",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "bun run dist/server.js",
+    "postinstall": "prisma generate"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",

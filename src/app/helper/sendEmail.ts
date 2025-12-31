@@ -5,7 +5,6 @@
 import nodemailer from "nodemailer";
 import ejs from "ejs";
 import path from "path";
-import { fileURLToPath } from "url"
 import { envVars } from "../configs/envVars";
 import customError from "../shared/customError";
 
@@ -24,11 +23,13 @@ interface sendEmailOptions {
   subject: string;
   templateName: string;
   templateData?: Record<string, any>;
-  attachments?: {
-    filename: string;
-    content: Buffer | string;
-    contentType: string;
-  }[] | undefined;
+  attachments?:
+    | {
+        filename: string;
+        content: Buffer | string;
+        contentType: string;
+      }[]
+    | undefined;
 }
 
 export const sendEmail = async ({
@@ -47,22 +48,19 @@ export const sendEmail = async ({
   });
 
   try {
-    if (envVars.NODE_ENV === "Development") console.log("started sending email");
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = path.dirname(__filename)
+    if (envVars.NODE_ENV === "Development")
+      console.log("started sending email");
     const templatePath = path.join(
       __dirname,
       "templates",
       `${templateName}.ejs`
-    )
+    );
 
     console.log({ templatePath });
 
-if (envVars.NODE_ENV === "Development")
+    if (envVars.NODE_ENV === "Development")
       console.log(`\u2709\uFE0F Email send to ${to}: ${templateData}`);
     const html = await ejs.renderFile(templatePath, templateData);
-
-
 
     const info = await transporter.sendMail({
       from: envVars.SMTP.SMTP_FROM,
@@ -82,4 +80,3 @@ if (envVars.NODE_ENV === "Development")
     throw new customError(401, "Sending email error");
   }
 };
-
