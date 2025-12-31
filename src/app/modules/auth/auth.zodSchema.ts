@@ -24,3 +24,19 @@ export const resetPasswordSchema = z.object({
     .regex(/[0-9]/, "Password must contain a digit")
     .regex(/[^A-Za-z0-9]/, "Password must contain a special character"),
 });
+
+export const changePasswordSchema = z
+  .object({
+    oldPassword: z
+      .string()
+      .min(1, "Current password is required"),
+
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .max(64, "Password is too long"),
+  })
+  .refine((data) => data.oldPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  });

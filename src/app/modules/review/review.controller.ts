@@ -5,6 +5,8 @@ import { Request, Response } from "express";
 import { ReviewService } from "./review.service";
 import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
+import { Role } from "@prisma/client";
+import customError from "../../shared/customError";
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id as string;
@@ -105,16 +107,21 @@ const deleteReview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const adminUpdateStatus = catchAsync(async (req, res) => {
-  const updated = await ReviewService.adminUpdateStatus(
+const adminReviewUpdateStatus = catchAsync(async (req, res) => {
+  const updated = await ReviewService.adminReviewUpdateStatus(
     req.params.id,
-    req.body.status
+    req.body.status,
+    req.user?.role as Role
   );
+
+  if ( req.body.status === updated.status) {
+     throw new customError(StatusCodes.NOT_FOUND, `Status not changed`);
+  }
 
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,
-    message: "Review status updated",
+    message: `Review status updated to ${updated.status}`,
     data: updated,
   });
 });
@@ -126,6 +133,6 @@ export const ReviewController = {
   updateReview,
   deleteReview,
   getMyReviews,
-  adminUpdateStatus,
+  adminReviewUpdateStatus,
   getReviewByMatchId
 };

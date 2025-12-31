@@ -34,9 +34,9 @@ router.get("/:id", ReviewController.getSingleReview);
 // Admin Review Status
 router.patch(
   "/change-status/:id",
-  checkAuth(Role.ADMIN),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   validateRequest(adminReviewStatusSchema),
-  ReviewController.adminUpdateStatus
+  ReviewController.adminReviewUpdateStatus
 );
 
 router.patch(

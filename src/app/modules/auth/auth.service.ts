@@ -10,14 +10,13 @@ import { UserStatus } from "@prisma/client";
 import { createUserToken } from "../../helper/userTokenGenerator";
 import crypto from "crypto";
 import { redisClient } from "../../configs/redis.config";
-import { ForgotPasswordInput, ResetPasswordInput, VerifyOtpInput } from "./auth.interface";
+import { ResetPasswordInput, VerifyOtpInput } from "./auth.interface";
 import { generateOtp } from "../../helper/generateOtp";
 import { envVars } from "../../configs/envVars";
 import { sendEmail } from "../../helper/sendEmail";
 import { maskEmail } from "../../helper/muskEmail";
 import { generateJwtToken, verifyJwtToken } from "../../helper/jwtHelper";
 import { JwtPayload } from "jsonwebtoken";
-
 
 const login = async ({
   email,
@@ -62,22 +61,23 @@ const login = async ({
   return userTokens;
 };
 
-
 const refreshToken = async (token: string) => {
   let decodedData: JwtPayload | null;
   try {
-    decodedData = await verifyJwtToken(token, envVars.JWT_REFRESH_SECRET as string) as JwtPayload;
-  }
-  catch (err) {
+    decodedData = (await verifyJwtToken(
+      token,
+      envVars.JWT_REFRESH_SECRET as string
+    )) as JwtPayload;
+  } catch (err) {
     console.log(err);
-    throw new Error("You are not authorized!")
+    throw new Error("You are not authorized!");
   }
 
   const user = await prisma.user.findUniqueOrThrow({
     where: {
       email: decodedData?.email,
-      status: UserStatus.ACTIVE
-    }
+      status: UserStatus.ACTIVE,
+    },
   });
 
   const jwtPayload = {
@@ -85,7 +85,6 @@ const refreshToken = async (token: string) => {
     email: user.email,
     role: user.role,
   };
-
 
   // generating token by utils function
   const accessToken = await generateJwtToken(
@@ -105,33 +104,31 @@ const refreshToken = async (token: string) => {
     accessToken,
     refreshToken,
   };
-
 };
-
 
 const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
 const RESET_TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
 const OTP_MAX_ATTEMPTS = 5; // max verification attempts
 const FORGOT_RATE_LIMIT = 3; // max forgot requests per hour
 
-
-
 // step 1: initiate forgot password (generate OTP and email it)
 const forgotPassword = async (email: string) => {
- 
   console.log({ email });
 
   // rate-limit: how many forgot requests in last hour
   const rateKey = `pwd_flood:${email}`;
   const floods = Number((await redisClient.get(rateKey)) ?? 0);
   if (floods >= FORGOT_RATE_LIMIT) {
-    throw new customError(StatusCodes.TOO_MANY_REQUESTS, "Too many requests. Try again later.");
+    throw new customError(
+      StatusCodes.TOO_MANY_REQUESTS,
+      "Too many requests. Try again later."
+    );
   }
 
   // find user
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user?.email) {
-    throw new customError(StatusCodes.NOT_FOUND, "Email is not registerd")
+    throw new customError(StatusCodes.NOT_FOUND, "Email is not registerd");
   }
   if (!user) {
     // Don't reveal whether email exists: act as if it was sent
@@ -144,7 +141,11 @@ const forgotPassword = async (email: string) => {
   const otp = generateOtp();
   const hashedOtp = await bcrypt.hash(otp, 10);
   const otpKey = `pwd_otp:${email}`;
-  await redisClient.setEx(otpKey, OTP_TTL_SECONDS, JSON.stringify({ hashedOtp, createdAt: Date.now() }));
+  await redisClient.setEx(
+    otpKey,
+    OTP_TTL_SECONDS,
+    JSON.stringify({ hashedOtp, createdAt: Date.now() })
+  );
 
   // reset attempts counter
   const attemptsKey = `pwd_otp_attempts:${email}`;
@@ -154,20 +155,17 @@ const forgotPassword = async (email: string) => {
   await redisClient.incr(rateKey);
   await redisClient.expire(rateKey, 60 * 60); // 1 hour
 
-
-  const resetVerifyUrl = `${envVars.FRONEND_URL}/verify-otp`; // frontend route if you have one
-
+  // const resetVerifyUrl = `${envVars.FRONEND_URL}/verify-otp`; // frontend route if you have one
 
   await sendEmail({
     to: email,
     subject: "Reset Password OTP",
     templateName: "forgotPassword",
-    templateData: { otp, year: new Date().getFullYear() }
+    templateData: { otp, year: new Date().getFullYear() },
   });
 
   return { success: true, message: `OTP sent to ${maskEmail(user.email)}` };
-}
-
+};
 
 // step 2: verify OTP (returns a single-use reset token if success)
 const verifyOtp = async (input: VerifyOtpInput) => {
@@ -178,7 +176,10 @@ const verifyOtp = async (input: VerifyOtpInput) => {
   // check attempts
   const attempts = Number((await redisClient.get(attemptsKey)) ?? 0);
   if (attempts >= OTP_MAX_ATTEMPTS) {
-    throw new customError(StatusCodes.TOO_MANY_REQUESTS, "Too many attempts. Request a new OTP.");
+    throw new customError(
+      StatusCodes.TOO_MANY_REQUESTS,
+      "Too many attempts. Request a new OTP."
+    );
   }
 
   const payloadRaw = await redisClient.get(otpKey);
@@ -214,11 +215,14 @@ const verifyOtp = async (input: VerifyOtpInput) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
-  await redisClient.setEx(resetKey, RESET_TOKEN_TTL_SECONDS, JSON.stringify({ userId: user.id }));
-
+  await redisClient.setEx(
+    resetKey,
+    RESET_TOKEN_TTL_SECONDS,
+    JSON.stringify({ userId: user.id })
+  );
 
   return { resetToken, expiresIn: RESET_TOKEN_TTL_SECONDS };
-}
+};
 
 // step 3: reset password using reset token
 const resetPassword = async (input: ResetPasswordInput) => {
@@ -226,7 +230,10 @@ const resetPassword = async (input: ResetPasswordInput) => {
   const resetKey = `pwd_reset:${token}`;
   const payloadRaw = await redisClient.get(resetKey);
   if (!payloadRaw) {
-    throw new customError(StatusCodes.BAD_REQUEST, "Invalid or expired reset token");
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid or expired reset token"
+    );
   }
 
   let payload: { userId: string };
@@ -234,19 +241,24 @@ const resetPassword = async (input: ResetPasswordInput) => {
     payload = JSON.parse(payloadRaw);
   } catch {
     await redisClient.del(resetKey);
-    throw new customError(StatusCodes.BAD_REQUEST, "Invalid or expired reset token");
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Invalid or expired reset token"
+    );
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.userId } });
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
   // Hash new password
-  const saltRounds = Number(process.env.BCRYPT_SALT || 10);
-  const hashed = await bcrypt.hash(input.newPassword, saltRounds);
+  const hashed = await bcrypt.hash(input.newPassword, Number(envVars.BCRYPT_SALT_ROUND as string));
 
   // Update in DB atomically, remove tokens
   await prisma.$transaction([
-    prisma.user.update({ where: { id: user.id }, data: { password: hashed, updatedAt: new Date() } }),
+    prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, updatedAt: new Date() },
+    }),
     // optionally: log password reset in a table if you have one
   ]);
 
@@ -268,15 +280,74 @@ const resetPassword = async (input: ResetPasswordInput) => {
   }
 
   return { ok: true };
-}
+};
 
+// Chnage password for logged in user
+const changePassword = async (
+  userId: string,
+  payload: {
+    oldPassword: string;
+    newPassword: string;
+  }
+) => {
+  const { oldPassword, newPassword } = payload;
 
+  // 1. Fetch user with password
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      password: true,
+    },
+  });
 
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // 2. Verify old password
+  const isOldPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
+
+  if (!isOldPasswordCorrect) {
+    throw new customError(
+      StatusCodes.UNAUTHORIZED,
+      "Current password is incorrect"
+    );
+  }
+
+  // 3. Prevent reusing same password
+  const isSamePassword = await bcrypt.compare(newPassword, user.password);
+
+  if (isSamePassword) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "New password must be different from current password"
+    );
+  }
+
+  // 4. Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, Number(envVars.BCRYPT_SALT_ROUND as string));
+
+  // 5. Update password
+  const updatedUserPass = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      password: hashedPassword,
+      updatedAt: new Date(),
+    },
+  });
+
+  if (!updatedUserPass.password) {
+    throw new customError(StatusCodes.BAD_GATEWAY, "New password not set");
+  }
+  return updatedUserPass
+};
 
 export const authService = {
   login,
   resetPassword,
   verifyOtp,
   forgotPassword,
-  refreshToken
+  refreshToken,
+  changePassword,
 };

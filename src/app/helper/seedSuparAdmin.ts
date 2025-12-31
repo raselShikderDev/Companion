@@ -1,3 +1,4 @@
+/** biome-ignore-all assist/source/organizeImports: > */
 import { Role, UserStatus } from "@prisma/client";
 import bcrypt from "bcrypt";
 import { envVars } from "../configs/envVars";
@@ -14,7 +15,7 @@ async function seedSuperAdmin() {
         }
     })
 
-    if (existingSuperAdmin && existingSuperAdmin.email && existingSuperAdmin.role === Role.SUPER_ADMIN) {
+    if (existingSuperAdmin?.email && existingSuperAdmin.role === Role.SUPER_ADMIN) {
         console.log("Super admin exists")
         return
     }

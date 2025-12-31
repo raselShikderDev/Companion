@@ -3,11 +3,13 @@
 import { validateRequest } from "../../middlewares/validateRequest";
 import { checkAuth } from "../../middlewares/checkAuth";
 import { Role } from "@prisma/client";
-import { Router } from "express";
+import { NextFunction, Request, Response, Router } from "express";
 import { TripController } from "./trip.controller";
 import { createTripZodSchema, updateTripStausSchema } from "./trip.zodSchema";
 
 const router = Router();
+console.log("trip route");
+
 
 // Create a trip (only explorers)
 router.post(
@@ -33,6 +35,16 @@ router.get(
 // Get single trip
 router.get("/:id", TripController.getTripById);
 
+
+// Update trip status for admin
+router.patch(
+  "/status/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  validateRequest(updateTripStausSchema),
+  TripController.updateAdminTripStatus
+);
+
+
 router.patch(
   "/complete/:id",
   checkAuth(Role.EXPLORER),
@@ -40,10 +52,11 @@ router.patch(
   TripController.updateTripStatus
 );
 
+
 // Update trip
 router.patch("/:id", checkAuth(Role.EXPLORER), TripController.updateTrip);
 
 // Delete trip
-router.delete("/:id", checkAuth(Role.EXPLORER), TripController.deleteTrip);
+router.delete("/:id", checkAuth(...Object.values(Role)), TripController.deleteTrip);
 
 export const tripRouter = router;

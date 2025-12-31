@@ -20,7 +20,7 @@ router.get(
 // Get all users (Admin only)
 router.get(
   "/",
-  checkAuth(Role.ADMIN),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   userController.getAllUsers
 );
 
@@ -30,7 +30,6 @@ router.get(
   checkAuth(Role.ADMIN),
   userController.getSingleUser
 );
-
 
 
 router.post("/create-explorer", validateRequest(createExplorerZodSchema), userController.createExplorer);
@@ -43,7 +42,7 @@ router.patch(
   userController.updateProfilePicture
 );
 
-// Update profile info (except email, password)
+// Update profile info 
 router.patch(
   "/update-profile",
   checkAuth(Role.ADMIN, Role.EXPLORER),
@@ -51,7 +50,26 @@ router.patch(
   userController.updateUserProfile
 );
 
+// Toggle ACTIVE ⇄ BLOCKED
+router.patch(
+  "/status/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  userController.toggleUserStatusChange
+);
 
+// Toggle isDeleted (Soft delete / Restore)
+router.patch(
+  "/soft-delete/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  userController.toggleSoftDeleteUser
+);
+
+// Permanent delete 
+router.delete(
+  "/:id",
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN),
+  userController.permanentDeleteUser
+);
 
 
 export const userRouter = router

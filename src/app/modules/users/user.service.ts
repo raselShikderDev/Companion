@@ -3,34 +3,43 @@
 /** biome-ignore-all assist/source/organizeImports: > */
 import { prisma } from "../../configs/db.config";
 import bcrypt from "bcrypt";
-import { ICreateAdmin, ICreateExplorer, UpdateProfilePictureInput, UpdateUserProfileInput } from "./user.interface";
+import { UserStatus } from "@prisma/client";
+import {
+  ICreateAdmin,
+  ICreateExplorer,
+  UpdateProfilePictureInput,
+  UpdateUserProfileInput,
+} from "./user.interface";
 import { envVars } from "../../configs/envVars";
 import { Gender, Role } from "@prisma/client";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { safeUser } from "../../helper/safeUser";
-
-
-
+import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 
 // Create a Explorer
 const createExplorer = async (payload: ICreateExplorer) => {
-
-  const { email } = payload
+  const { email } = payload;
 
   const existingUser = await prisma.user.findUnique({
     where: {
       email: email,
-    }
-  })
+    },
+  });
 
   if (existingUser?.email) {
-    throw new customError(StatusCodes.BAD_REQUEST, "Explorer already exists! Please use another email")
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Explorer already exists! Please use another email"
+    );
   }
 
   return prisma.$transaction(async (tx: any) => {
-    const hashedPassword = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND as string));
+    const hashedPassword = await bcrypt.hash(
+      payload.password,
+      Number(envVars.BCRYPT_SALT_ROUND as string)
+    );
 
     //  Create user
     const user = await tx.user.create({
@@ -126,7 +135,6 @@ const createAdmin = async (payload: ICreateAdmin) => {
 //   }
 // }
 
-
 const updateProfilePicture = async (
   userId: string,
   data: UpdateProfilePictureInput
@@ -141,10 +149,7 @@ const updateProfilePicture = async (
   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
 
   // Identify target model based on role
-  const target =
-    user.role === "ADMIN"
-      ? user.admin
-      : user.explorer;
+  const target = user.role === "ADMIN" ? user.admin : user.explorer;
 
   if (!target)
     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
@@ -222,91 +227,88 @@ const updateUserProfile = async (
   return prisma.$transaction(async (tx) => {
     if (isAdmin) {
       return tx.admin.update({
-        where: { id: user.admin!.id },
+        where: { id: user.admin?.id },
         data: allowedData,
       });
     }
 
     return tx.explorer.update({
-      where: { id: user.explorer!.id },
+      where: { id: user.explorer?.id },
       data: allowedData,
     });
   });
 };
 
-
-// const updateUserProfile = async (
-//   userId: string,
-//   data: UpdateUserProfileInput
-// ) => {
-//   console.log("updating user profile");
-
-//   const user = await prisma.user.findUnique({
-//     where: { id: userId },
-//     include: { explorer: true, admin: true },
-//   });
-
-//   if (!user) throw new customError(StatusCodes.NOT_FOUND, "User not found");
-
-//   // Role based profile
-//   const target =
-//     user.role === "ADMIN"
-//       ? user.admin
-//       : user.explorer;
-
-//   if (!target)
-//     throw new customError(StatusCodes.NOT_FOUND, "Profile not found");
-
-//   // Never update email or password here  
-//   const allowedData = { ...data };
-
-//   const updated = await prisma.$transaction(async (tx: any) => {
-//     if (user.role === "ADMIN") {
-//       return tx.admin.update({
-//         where: { id: target.id },
-//         data: allowedData,
-//       });
-//     } else {
-//       return tx.explorer.update({
-//         where: { id: target.id },
-//         data: allowedData,
-//       });
-//     }
-//   });
-//   console.log("User profile info updated");
-
-//   return updated;
-// };
-
 const getAllUsers = async (query: Record<string, string>) => {
-  const builtQuery = prismaQueryBuilder(query, [
-    "email",
-    "fullName",
-    "phone",
-  ]);
-  // const users = await prisma.user.findMany({
-  //   include: {
-  //     explorers: true,
-  //     admins: true,
-  //   },
-  // });
 
-  const users = await prisma.user.findMany({
-    where: builtQuery.where
-  });
+const bulidedQuery = universalQueryBuilder("user", query);
+ const whereCondition = {
+     AND: [
+    bulidedQuery.where,
+    { role: { not: Role.SUPER_ADMIN } },
+  ],
+  };
+const users = await prisma.user.findMany({
+  where:whereCondition,
+  include: {
+    explorer: true,
+    admin: true,
+  },
+  orderBy: bulidedQuery.orderBy,
+    skip: bulidedQuery.skip,
+    take: bulidedQuery.take,
+});
 
   const total = await prisma.user.count({
-    where: builtQuery.where,
+    where: whereCondition,
   });
 
   return {
+    data: users.map(safeUser),
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      page: bulidedQuery.meta.page,
+      limit: bulidedQuery.take,
       total,
     },
-    data: users.map(safeUser)
   };
+
+  // const builtQuery = prismaQueryBuilder(query, ["email", "fullName", "phone"]);
+  // console.log("builtQuery: ", builtQuery);
+
+  // const whereCondition = {
+  //   ...builtQuery.where,
+  //   role: { not: Role.SUPER_ADMIN },
+  // };
+  // console.log("whereCondition: ", whereCondition);
+
+  // const users = await prisma.user.findMany({
+  //   where: whereCondition,
+  //   include: {
+  //     explorer: {
+  //       include: {
+  //         subscription: true,
+  //       },
+  //     },
+  //     admin: true,
+  //   },
+  //   orderBy: builtQuery.orderBy,
+  //   skip: builtQuery.skip,
+  //   take: builtQuery.limit,
+  // });
+
+  // const total = await prisma.user.count({
+  //   where: whereCondition,
+  // });
+  // console.log({ total, users });
+
+  // return {
+  //   data: users.map(safeUser),
+  //   meta: {
+  //     page: builtQuery.page,
+  //     limit: builtQuery.limit,
+  //     total,
+  //   },
+  // };
 };
 
 const getSingleUser = async (userId: string) => {
@@ -331,11 +333,10 @@ const getMe = async (userId: string) => {
     include: {
       explorer: {
         include: {
-          subscription: true
-        }
+          subscription: true,
+        },
       },
       admin: true,
-
     },
   });
 
@@ -346,6 +347,93 @@ const getMe = async (userId: string) => {
   return user;
 };
 
+/**
+ * Toggle user status
+ */
+const toggleUserStatusChange = async (userId: string, status: UserStatus) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  // Prevent changing status of deleted users
+  if (user.isDeleted) {
+    throw new customError(
+      StatusCodes.BAD_REQUEST,
+      "Cannot change status of a deleted user"
+    );
+  }
+  console.log({ userId, status, currentStatus: user.status });
+
+  if (status === user.status) {
+    throw new customError(StatusCodes.BAD_REQUEST, `User already ${status}`);
+  }
+  console.log({
+    needUpdateUser: user,
+  });
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      status: status as UserStatus,
+    },
+  });
+};
+// const toggleUserStatusChange = async (userId: string) => {
+//   const user = await prisma.user.findUnique({ where: { id: userId } });
+
+//   if (!user) {
+//     throw new customError(StatusCodes.NOT_FOUND, "User not found");
+//   }
+
+//   const nextStatus = user.status === UserStatus.ACTIVE ? UserStatus.BLOCKED : UserStatus.ACTIVE;
+
+//   const updatedUser = await prisma.user.update({
+//     where: { id: userId },
+//     data: { status: nextStatus },
+//   });
+
+//   return updatedUser;
+// };
+
+/**
+ * Soft delete (toggle isDeleted)
+ */
+const toggleSoftDeleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const isDeleting = !user.isDeleted;
+
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      isDeleted: isDeleting,
+      status: isDeleting ? UserStatus.SUSPENDED : UserStatus.ACTIVE,
+    },
+  });
+};
+
+/**
+ * Permanent delete (hard delete)
+ */
+const permanentDeleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new customError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  return { message: "User permanently deleted" };
+};
 
 export const userService = {
   createExplorer,
@@ -355,6 +443,7 @@ export const userService = {
   getAllUsers,
   getSingleUser,
   getMe,
+  toggleUserStatusChange,
+  toggleSoftDeleteUser,
+  permanentDeleteUser,
 };
-
-

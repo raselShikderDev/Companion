@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/correctness/noUnusedImports: > */
 import { Router } from "express";
 import { validateRequest } from "../../middlewares/validateRequest";
-import { forgotPasswordSchema, loginZodSchema, resetPasswordSchema, verifyOtpSchema } from "./auth.zodSchema";
+import { changePasswordSchema, forgotPasswordSchema, loginZodSchema, resetPasswordSchema, verifyOtpSchema } from "./auth.zodSchema";
 import { authController } from "./authController";
 
 const router = Router();
@@ -15,5 +15,6 @@ router.post("/refresh-token", authController.refreshToken);
 router.post("/forgot-password", validateRequest(forgotPasswordSchema), authController.forgotPassword);
 router.post("/verify-otp", validateRequest(verifyOtpSchema), authController.verifyOTP);
 router.post("/reset-password", validateRequest(resetPasswordSchema), authController.resetPassword);
+router.post("/change-password", validateRequest(changePasswordSchema), authController.changePassword);
 
 export const authRouter = router;

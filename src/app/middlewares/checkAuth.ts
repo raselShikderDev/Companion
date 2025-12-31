@@ -38,6 +38,7 @@ export const checkAuth =
         );
       }
 
+
       if (userExist.isDeleted === true) {
         throw new customError(
           StatusCodes.BAD_REQUEST,
@@ -53,6 +54,10 @@ export const checkAuth =
 
       if (!verifiedToekn)
         throw new customError(StatusCodes.UNAUTHORIZED, "Token is not valid");
+console.log({
+  authRoles,
+  UserRole:verifiedToekn.role
+});
 
       if (!authRoles.includes(verifiedToekn.role))
         throw new customError(
