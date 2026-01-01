@@ -8,22 +8,34 @@ import { createSubscriptionSchema } from "./subscription.validation";
 
 const router = Router();
 
+router.get(
+  "/my-subscripion",
+  checkAuth(...Object.values(Role)),
+  subscriptionController.getMySubscription
+);
 
-router.get("/", checkAuth(...Object.values(Role)), subscriptionController.getAllSubscription);
-router.get("/:id", checkAuth(...Object.values(Role)), subscriptionController.getSingleSubscription);
-router.get("/my-subscripion", checkAuth(...Object.values(Role)), subscriptionController.getMySubscription);
+router.get(
+  "/",
+  checkAuth(...Object.values(Role)),
+  subscriptionController.getAllSubscription
+);
+router.get(
+  "/:id",
+  checkAuth(...Object.values(Role)),
+  subscriptionController.getSingleSubscription
+);
 
 // router.post("/initiate", checkAuth(...Object.values(Role)), validateRequest(initiatePaymentSchema), subscriptionController.initiatePayment);
 
-router.post("/create", checkAuth(...Object.values(Role)), validateRequest(createSubscriptionSchema), subscriptionController.createSubscription);
+router.post(
+  "/create",
+  checkAuth(...Object.values(Role)),
+  validateRequest(createSubscriptionSchema),
+  subscriptionController.createSubscription
+);
 
 // SSLCommerz webhook endpoint (provider will call)
 router.post("/webhook/sslcommerz", subscriptionController.sslcommerzWebhook);
 router.post("/validate-payment", subscriptionController.sslcommerzWebhook);
 
-
-
 export const subscriptionRouter = router;
-
-
-

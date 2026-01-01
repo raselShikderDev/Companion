@@ -6,7 +6,7 @@ import sendResponse from "../../shared/sendResponse";
 import { StatusCodes } from "http-status-codes";
 import { PaymentService } from "./payment.service";
 
-const markPaymentFailed = catchAsync(async (req: Request, res: Response) => {
+const markPaymentFailed = catchAsync(async (req: Request, _res: Response) => {
   const tranId = req.body.tran_id || req.query.tran_id;
 
   await PaymentService.markPaymentFailed(tranId, req.body);
@@ -15,7 +15,7 @@ const markPaymentFailed = catchAsync(async (req: Request, res: Response) => {
 /**
  * CANCEL callback
  */
-const markPaymentCancelled = catchAsync(async (req: Request, res: Response) => {
+const markPaymentCancelled = catchAsync(async (req: Request, _res: Response) => {
   const tranId = req.body.tran_id || req.query.tran_id;
 
   await PaymentService.markPaymentCancelled(tranId, req.body);
