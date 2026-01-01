@@ -5,7 +5,6 @@
 /** biome-ignore-all lint/style/useImportType: > */
 
 import { PaymentStatus, SubscriptionPlan } from "@prisma/client";
-import fetch from "node-fetch";
 // biome-ignore lint/style/useNodejsImportProtocol: >
 import crypto from "crypto";
 import { prisma } from "../../configs/db.config";
@@ -16,7 +15,6 @@ import { PLANS } from "./plan.config";
 import { toJsonValue } from "../../helper/jasonValueConvertar";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import axios from "axios";
-import { verifySSLCommerzHash } from "../../helper/sslcommerzHash";
 
 /**
  * STEP 1 — Create subscription & initiate payment
@@ -238,19 +236,10 @@ const initiatePayment = async (payment: any, explorer: any) => {
 };
 
 const verifyAndFinalizePayment = async (payload: any) => {
+console.log("SSL hit for verifying payment");
 
+console.log({payload, "envVars.SSL.SSL_SECRET_KEY":envVars.SSL.SSL_SECRET_KEY});
 
-  const isValidHash = verifySSLCommerzHash(
-    payload,
-    envVars.SSL.SSL_SECRET_KEY
-  );
-
-  if (!isValidHash) {
-    throw new customError(
-      StatusCodes.UNAUTHORIZED,
-      "Invalid payment signature"
-    );
-  }
 
   const tranId = payload.tran_id || payload.val_id;
 
@@ -360,7 +349,7 @@ const verifyAndFinalizePayment = async (payload: any) => {
 });
 
 
-  console.log(subs);
+  console.log({subs});
 
 
   return { success: true, subs };

@@ -19,6 +19,7 @@ router.post("/create", checkAuth(...Object.values(Role)), validateRequest(create
 
 // SSLCommerz webhook endpoint (provider will call)
 router.post("/webhook/sslcommerz", subscriptionController.sslcommerzWebhook);
+router.post("/validate-payment", subscriptionController.sslcommerzWebhook);
 
 
 
