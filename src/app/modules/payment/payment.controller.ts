@@ -30,7 +30,7 @@ const getAllPayment = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     message: "All payments",
     data: data.data,
-    meta: data.meta,
+    meta:data.meta
   });
 });
 

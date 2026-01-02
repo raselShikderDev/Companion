@@ -5,7 +5,6 @@ import { prisma } from "../../configs/db.config";
 import customError from "../../shared/customError";
 import { StatusCodes } from "http-status-codes";
 import { CreateReviewInput, UpdateReviewInput } from "./review.interface";
-import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { MatchStatus, Prisma, ReviewStatus, Role, TripStatus } from "@prisma/client";
 import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 

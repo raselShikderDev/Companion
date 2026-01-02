@@ -16,7 +16,7 @@ router.get(
 
 router.get(
   "/",
-  checkAuth(...Object.values(Role)),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   subscriptionController.getAllSubscription
 );
 router.get(
@@ -35,7 +35,6 @@ router.post(
 );
 
 // SSLCommerz webhook endpoint (provider will call)
-router.post("/webhook/sslcommerz", subscriptionController.sslcommerzWebhook);
 router.post("/validate-payment", subscriptionController.sslcommerzWebhook);
 
 export const subscriptionRouter = router;

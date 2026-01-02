@@ -6,6 +6,7 @@ import { StatusCodes } from "http-status-codes";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import { PaymentStatus } from "@prisma/client";
 import { toJsonValue } from "../../helper/jasonValueConvertar";
+import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 
 const markPaymentFailed = async (tranId: string, payload?: any) => {
   const payment = await prisma.payment.findUnique({
@@ -52,31 +53,31 @@ const markPaymentCancelled = async (tranId: string, payload?: any) => {
 };
 
 const getAllPayment = async (query: Record<string, string>) => {
-  // return prisma.payment.findMany({
-  //   include: { explorer: true },
-  //   orderBy: { createdAt: "desc" },
-  // });
-  const { where, take, skip, orderBy } = prismaQueryBuilder(query, ["transactionId"]);
+  const builtQuery = universalQueryBuilder("payment", query);
+
 
   const payments = await prisma.payment.findMany({
-    where,
-    skip,
-    take,
-    orderBy,
+    where: builtQuery.where,
     include: {
       subscription: true,
-    }
+      explorer: true,
+    },
+    orderBy: builtQuery.orderBy,
+    skip: builtQuery.skip,
+    take: builtQuery.take,
   });
-  const total = await prisma.payment.count({ where });
+  const total = await prisma.payment.count({ where: builtQuery.where });
 
   return {
     data: payments,
     meta: {
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
-      total
-    }
+      ...builtQuery.meta,
+      total,
+    },
   };
+// const data = await prisma.payment.findMany()
+// console.log({data});
+// return data
 
 };
 
