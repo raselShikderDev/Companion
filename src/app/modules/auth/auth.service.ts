@@ -119,13 +119,13 @@ const forgotPassword = async (email: string) => {
   const redis = await getRedis();
   // rate-limit: how many forgot requests in last hour
   const rateKey = `pwd_flood:${email}`;
-  // const floods = Number((await redis.get(rateKey)) ?? 0);
-  // if (floods >= FORGOT_RATE_LIMIT) {
-  //   throw new customError(
-  //     StatusCodes.TOO_MANY_REQUESTS,
-  //     "Too many requests. Try again later."
-  //   );
-  // }
+  const floods = Number((await redis.get(rateKey)) ?? 0);
+  if (floods >= FORGOT_RATE_LIMIT) {
+    throw new customError(
+      StatusCodes.TOO_MANY_REQUESTS,
+      "Too many requests. Try again later."
+    );
+  }
 
   // find user
   const user = await prisma.user.findUnique({ where: { email } });
