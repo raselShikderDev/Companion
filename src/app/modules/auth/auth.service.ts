@@ -110,7 +110,7 @@ const refreshToken = async (token: string) => {
 const OTP_TTL_SECONDS = 10 * 60; // 10 minutes
 const RESET_TOKEN_TTL_SECONDS = 60 * 60; // 1 hour
 const OTP_MAX_ATTEMPTS = 5; // max verification attempts
-const FORGOT_RATE_LIMIT = 4563; // max forgot requests per hour
+const FORGOT_RATE_LIMIT = 5; // max forgot requests per hour
 
 // step 1: initiate forgot password (generate OTP and email it)
 const forgotPassword = async (email: string) => {
