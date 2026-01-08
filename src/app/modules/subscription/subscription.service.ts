@@ -15,6 +15,7 @@ import { PLANS } from "./plan.config";
 import { toJsonValue } from "../../helper/jasonValueConvertar";
 import { prismaQueryBuilder } from "../../shared/queryBuilder";
 import axios from "axios";
+import { universalQueryBuilder } from "../../shared/universalQueryBuilder";
 
 /**
  * STEP 1 — Create subscription & initiate payment
@@ -434,35 +435,29 @@ const verifyAndFinalizePayment = async (payload: any) => {
 const handleSslCommerzCallback = verifyAndFinalizePayment;
 
 const getAllSubscription = async (query: Record<string, string>) => {
-  const { where, take, skip, orderBy } = prismaQueryBuilder(query, [
-    "planName",
-    "status",
-    "isActive",
-    "endDate",
-    "startDate",
-  ]);
+  const builtQuery = universalQueryBuilder("subscription", query);
+
 
   const [data, total] = await prisma.$transaction([
     prisma.subscription.findMany({
-      where,
-      skip,
-      take,
-      orderBy,
+      where: builtQuery.where,
       include: {
         explorer: true,
         payment: true,
       },
+      orderBy: builtQuery.orderBy,
+      skip: builtQuery.skip,
+      take: builtQuery.take,
     }),
-    prisma.subscription.count({ where }),
+    prisma.subscription.count({ where: builtQuery.where, }),
   ]);
 
   return {
-    meta: {
-      total,
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 20,
-    },
     data,
+    meta: {
+      ...builtQuery.meta,
+      total,
+    },
   };
 };
 
@@ -480,13 +475,13 @@ const getSingleSubscription = async (id: string) => {
 
 const getMySubscription = async (userId: string) => {
   console.log("Getting my subscription");
-  
+
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
     include: { subscription: true },
   });
-  console.log({explorer});
-  
+  console.log({ explorer });
+
   if (!explorer)
     throw new customError(StatusCodes.NOT_FOUND, "Explorer profile not found");
   console.log({ subscriptionId: explorer?.subscription?.id });

@@ -6,7 +6,7 @@ import { PaymentController } from "./payment.controller";
 
 const router = Router();
 
-router.get("/all", checkAuth(Role.ADMIN), PaymentController.getAllPayment);
+router.get("/", checkAuth(Role.ADMIN, Role.SUPER_ADMIN), PaymentController.getAllPayment);
 router.get(
   "/single/:id",
   checkAuth(...Object.values(Role)),

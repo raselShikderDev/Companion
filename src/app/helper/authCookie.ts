@@ -12,17 +12,19 @@ export const setAuthCookie = async (
 ) => {
   if (loggedinInfo.accessToken) {
     res.cookie("accessToken", loggedinInfo.accessToken, {
-      httpOnly: true,
       secure: true,
+      httpOnly: true,
       sameSite: "none",
+      maxAge: 1000 * 60 * 60
     });
   }
 
   if (loggedinInfo.refreshToken) {
     res.cookie("refreshToken", loggedinInfo.refreshToken, {
-      httpOnly: true,
       secure: true,
+      httpOnly: true,
       sameSite: "none",
+      maxAge: 1000 * 60 * 60 * 24 * 90
     });
   }
 };
