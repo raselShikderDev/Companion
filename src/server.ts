@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import { envVars } from "./app/configs/envVars.js";
 import app from "./app.js";
 import seedSuperAdmin from "./app/helper/seedSuparAdmin.js";
-import { connectRedis } from "./app/configs/redis.config.js";
+// import { connectRedis } from "./app/configs/redis.config.js";
 
 async function startServer() {
   let server: Server;
@@ -51,7 +51,7 @@ async function startServer() {
 (async function main() {
   try {
     await startServer();
-    await connectRedis();
+    // await connectRedis();
     await seedSuperAdmin();
   } catch (error) {
     console.error("Error in main:", error);
