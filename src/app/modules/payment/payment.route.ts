@@ -19,12 +19,12 @@ router.get(
 );
 router.get(
   "/fail",
-  checkAuth(Role.EXPLORER),
+  // checkAuth(Role.EXPLORER),
   PaymentController.markPaymentFailed
 );
 router.get(
   "/cancel",
-  checkAuth(Role.EXPLORER),
+  // checkAuth(Role.EXPLORER),
   PaymentController.markPaymentCancelled
 );
 
