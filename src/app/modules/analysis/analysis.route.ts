@@ -14,7 +14,7 @@ router.get(
 
 router.get(
   "/admin",
-  checkAuth(Role.ADMIN),
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   AnalysisController.getAdminAnalysis
 );
 

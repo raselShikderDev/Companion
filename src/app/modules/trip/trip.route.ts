@@ -8,7 +8,7 @@ import { TripController } from "./trip.controller";
 import { createTripZodSchema, updateTripStausSchema } from "./trip.zodSchema";
 
 const router = Router();
-console.log("trip route");
+
 
 
 // Create a trip (only explorers)

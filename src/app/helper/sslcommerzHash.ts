@@ -1,9 +1,13 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
+/** biome-ignore-all lint/style/useNodejsImportProtocol: > */
 import crypto from "crypto";
 
 export const verifySSLCommerzHash = (
   payload: Record<string, any>,
   storePassword: string
 ): boolean => {
+  console.log("payload in verify sslcommerz function", payload);
+  
   const verifyKey = payload.verify_key;
   const verifySign = payload.verify_sign;
 

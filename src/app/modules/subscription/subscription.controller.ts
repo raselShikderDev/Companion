@@ -65,6 +65,9 @@ const getSingleSubscription = catchAsync(async (req: Request, res: Response) => 
 const getMySubscription = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const data = await subscriptionService.getMySubscription(userId as string);
+  if (!data) {
+    throw new customError(StatusCodes.NOT_FOUND, "No subscription active yet")
+  }
   sendResponse(res, {
     success: true,
     statusCode: StatusCodes.OK,

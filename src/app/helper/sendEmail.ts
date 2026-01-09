@@ -11,11 +11,14 @@ import customError from "../shared/customError";
 const transporter = nodemailer.createTransport({
   port: Number(envVars.SMTP.SMTP_PORT),
   host: envVars.SMTP.SMTP_HOST as string,
+  secure: true,
   auth: {
     user: envVars.SMTP.SMTP_USER as string,
     pass: envVars.SMTP.SMTP_PASS as string,
   },
-  secure: true,
+   tls: {
+    rejectUnauthorized: true,         
+  },
 });
 
 interface sendEmailOptions {
@@ -77,6 +80,6 @@ export const sendEmail = async ({
       console.log(`\u2709\uFE0F Email send to ${to}: ${info.messageId}`);
   } catch (error) {
     if (envVars.NODE_ENV === "Development") console.log(error);
-    throw new customError(401, "Sending email error");
+    throw new customError(401, "Sending email failed");
   }
 };
