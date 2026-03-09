@@ -9,6 +9,7 @@ import { subscriptionRouter } from "../modules/subscription/subscription.routes"
 import { ReviewRouter } from "../modules/review/review.route";
 import { analysisRouter } from "../modules/analysis/analysis.route";
 import { paymentRouter } from "../modules/payment/payment.route";
+import { recommendationRoutes } from "../modules/recommendation/recommendation.route";
 
 
 const router = Router()
@@ -49,6 +50,10 @@ const routerModules = [
     {
         path:"/analysis",
         route:analysisRouter
+    },
+    {
+        path:"/recommendation",
+        route:recommendationRoutes
     },
 ]
 
