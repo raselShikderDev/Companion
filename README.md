@@ -292,6 +292,81 @@ npx prisma studio
 - Audit logs
 - Email notifications
 
+# 17. AI Companion Recommendation System
+
+The platform includes an **AI-assisted companion recommendation system** that helps explorers find compatible travel partners.
+
+The system combines a **deterministic compatibility algorithm** with **OpenAI explanations**.
+
+## How It Works
+
+```
+Explorer Request
+      │
+Recommendation Engine
+(Database + Compatibility Scoring)
+      │
+Top Compatible Explorers
+      │
+OpenAI Explanation Layer
+      │
+API Response
+```
+
+### Compatibility Factors
+
+| Factor | Description |
+|------|------|
+| Interests | Shared travel interests |
+| Travel Style | Similar travel styles |
+| Reviews | Explorer reliability and ratings |
+
+Example scoring:
+
+```
+score =
+interest_similarity * 40%
++ travel_style_similarity * 30%
++ rating_score * 30%
+```
+
+---
+
+## Recommendation Endpoint
+
+```
+GET /api/v1/recommendations/companions
+```
+
+Authentication required:
+
+```
+Authorization: Bearer ACCESS_TOKEN
+```
+
+No request body required.
+
+---
+
+## Example Response
+
+```json
+{
+  "success": true,
+  "message": "Companion recommendations generated",
+  "data": [
+    {
+      "score": 88,
+      "explorer": {
+        "id": "exp_2",
+        "fullName": "Alice Walker"
+      }
+    }
+  ],
+  "aiExplanation": "Alice Walker is a strong match because she shares hiking and photography interests and prefers adventure travel."
+}
+```
+
 ---
 
 © Companion Platform – Backend API
