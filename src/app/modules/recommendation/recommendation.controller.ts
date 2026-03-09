@@ -8,7 +8,7 @@ import catchAsync from "../../shared/catchAsync";
 const getCompanionRecommendations = catchAsync(
   async (req: Request, res: Response) => {
 
-    const userId = req.user?.id;
+      const userId = req.user?.id;
 
     const result =
       await recommendationService.getCompanionRecommendations(userId as string);

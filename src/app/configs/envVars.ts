@@ -14,6 +14,7 @@ interface IEnvVars {
   SUPER_ADMIN_EMAIL: string;
   JWT_REFRESH_SECRET: string;
   JWT_REFRESH_EXPIRES: string;
+  openAiKey:string;
   // RESET_TOKEN_SECRET: string;
   // RESET_TOKEN_EXPIRES: string;
   FRONEND_URL: string;
@@ -55,6 +56,7 @@ interface IEnvVars {
 const loadEnvVariables = (): IEnvVars => {
   const requiredEnv: string[] = [
     "DATABASE_URL",
+    "openAiKey",
     "PORT",
     "NODE_ENV",
     "JWT_ACCESS_EXPIRES",
@@ -101,6 +103,7 @@ const loadEnvVariables = (): IEnvVars => {
   });
 
   return {
+    openAiKey:process.env.openAiKey as string,
     DATABASE_URL: process.env.DATABASE_URL as string,
     PORT: process.env.PORT as string,
     NODE_ENV: process.env.NODE_ENV as "Development" | "Production",

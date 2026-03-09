@@ -8,7 +8,6 @@ import { aiService } from "../ai/ai.service";
 
 const getCompanionRecommendations = async (userId: string) => {
 
-  // 1. Find explorer
   const explorer = await prisma.explorer.findFirst({
     where: { userId },
     include: { reviews: true },
@@ -18,7 +17,6 @@ const getCompanionRecommendations = async (userId: string) => {
     throw new customError(StatusCodes.NOT_FOUND, "Explorer not found");
   }
 
-  // 2. Fetch candidate explorers
   const candidates = await prisma.explorer.findMany({
     where: {
       id: { not: explorer.id },
@@ -28,27 +26,27 @@ const getCompanionRecommendations = async (userId: string) => {
     },
   });
 
-  // 3. Compatibility scoring
   const scored = candidates.map((candidate) => ({
     explorer: candidate,
     score: calculateCompatibility(explorer, candidate),
   }));
 
-  const topCandidates = scored
+  const recommendations = scored
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 
-  // 4. AI explanation
-  const aiExplanation = await aiService.explainMatches(
+  // Call OpenAI
+  const explanation = await aiService.generateMatchExplanation(
     explorer,
-    topCandidates
+    recommendations
   );
 
   return {
-    data: topCandidates,
-    aiExplanation,
+    data: recommendations,
+    aiExplanation: explanation,
   };
 };
+
 
 export const recommendationService = {
   getCompanionRecommendations,

@@ -1,23 +1,37 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: > */
 import OpenAI from "openai";
+import { envVars } from "../../configs/envVars";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: envVars.openAiKey as string,
 });
 
-const explainMatches = async (user: any, candidates: any[]) => {
+const generateMatchExplanation = async (
+  user: any,
+  recommendations: any[]
+) => {
 
   const prompt = `
-You are a travel companion recommendation AI.
+A user is looking for travel companions.
 
 User profile:
-Interests: ${user.interests}
-Travel style: ${user.travelStyleTags}
+Interests: ${user.interests.join(", ")}
+Travel styles: ${user.travelStyleTags.join(", ")}
 
 Recommended explorers:
-${JSON.stringify(candidates)}
+${recommendations
+  .map(
+    (r, i) => `
+${i + 1}. ${r.explorer.fullName}
+Interests: ${r.explorer.interests.join(", ")}
+Travel styles: ${r.explorer.travelStyleTags.join(", ")}
+Compatibility score: ${r.score}
+`
+  )
+  .join("\n")}
 
 Explain briefly why these explorers are good matches.
-Return short explanations.
+Return short explanations for each person.
 `;
 
   const completion = await openai.chat.completions.create({
@@ -26,7 +40,7 @@ Return short explanations.
       {
         role: "system",
         content:
-          "You are an AI that explains travel companion compatibility.",
+          "You are a travel companion recommendation assistant.",
       },
       {
         role: "user",
@@ -39,5 +53,5 @@ Return short explanations.
 };
 
 export const aiService = {
-  explainMatches,
+  generateMatchExplanation,
 };
